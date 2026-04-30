@@ -10,6 +10,7 @@ const EmpresaList = () => {
   const [error, setError] = useState("");
 
   const [showModal, setShowModal] = useState(false);
+  const [empresaId, setEmpresaId] = useState(null);
 
   const fetchEmpresas = async () => {
     try {
@@ -34,9 +35,18 @@ const EmpresaList = () => {
     fetchEmpresas();
   }, []);
 
+  const handleCreate = () => {
+    setEmpresaId(null);
+    setShowModal(true);
+  };
+
+  const handleEdit = (id) => {
+    setEmpresaId(id);
+    setShowModal(true);
+  };
+
   return (
     <Layout>
-      {/* Encabezado */}
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h3 className="fw-bold">Gestión de Empresas</h3>
@@ -45,28 +55,20 @@ const EmpresaList = () => {
           </p>
         </div>
 
-        <button
-          className="btn btn-primary px-4"
-          onClick={() => setShowModal(true)}
-        >
+        <button className="btn btn-primary px-4" onClick={handleCreate}>
           <i className="bi bi-plus-lg me-2"></i>Crear Empresa
         </button>
       </div>
 
-      {/* Error */}
       {error && <div className="alert alert-danger">{error}</div>}
 
-      {/* Tabla */}
       <div className="card shadow-sm border-0 rounded-3">
         <div className="card-body p-0">
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead className="bg-light">
                 <tr>
-                  <th
-                    className="ps-4 py-3 text-muted fw-semibold"
-                    style={{ width: "100px" }}
-                  >
+                  <th className="ps-4 py-3 text-muted fw-semibold" style={{ width: "100px" }}>
                     ID
                   </th>
                   <th className="py-3 text-muted fw-semibold">
@@ -94,7 +96,10 @@ const EmpresaList = () => {
                       </td>
                       <td className="fw-medium">{empresa.nombre}</td>
                       <td className="pe-4 text-end">
-                        <button className="btn btn-sm btn-success px-3 me-2">
+                        <button
+                          className="btn btn-sm btn-success px-3 me-2"
+                          onClick={() => handleEdit(empresa.id_empresa)}
+                        >
                           <i className="bi bi-pencil-square me-1"></i> Editar
                         </button>
 
@@ -112,16 +117,18 @@ const EmpresaList = () => {
                   </tr>
                 )}
               </tbody>
+
             </table>
           </div>
         </div>
       </div>
 
-      {/* Modal Form */}
+      {/* Modal */}
       <EmpresaForm
         show={showModal}
         onClose={() => setShowModal(false)}
         onSuccess={fetchEmpresas}
+        empresaId={empresaId}
       />
     </Layout>
   );

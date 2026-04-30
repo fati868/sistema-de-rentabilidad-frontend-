@@ -6,6 +6,12 @@ export const getEmpresas = async() => {
     return response.data;
 };
 
+// GET /empresas/:id
+export const getEmpresaById = async(id) => {
+    const response = await api.get(`/empresas/${id}`);
+    return response.data;
+};
+
 // POST /empresas
 export const createEmpresa = async(empresaData) => {
     const response = await api.post("/empresas", empresaData);
