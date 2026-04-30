@@ -40,8 +40,11 @@ const EmpresaForm = ({ show, onClose, onSuccess }) => {
       setNombre("");
       handleClose();
     } catch (err) {
-      console.error("Error al crear empresa:", err);
-      setError(err.response?.data?.message || "Error al crear empresa.");
+      if (err.response?.data?.errors) {
+  setError(err.response.data.errors[0].msg);
+} else {
+  setError(err.response?.data?.message || "Error al crear empresa.");
+}
     } finally {
       setSaving(false);
     }
