@@ -40,8 +40,8 @@ const Login = () => {
       console.log("Login exitoso:", data);
       alert("¡Inicio de sesión exitoso!");
 
-      // Redireccionar al dashboard
-      window.location.href = "/dashboard";
+      // Redireccionar a lista de empresas
+      window.location.href = "/empresas";
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
       setError(
