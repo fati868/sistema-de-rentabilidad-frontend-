@@ -75,6 +75,11 @@ const UsuarioList = () => {
     fetchUsuarios();
   }, []);
 
+  // ✅ Crear usuario (abre modal)
+  const handleCreate = () => {
+    setShowModal(true);
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm("¿Estás seguro de eliminar este usuario?")) {
       try {

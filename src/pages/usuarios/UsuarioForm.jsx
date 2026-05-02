@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Modal from "../../components/ui/Modal";
 import { createUsuario } from "../../services/usuarioService";
 import { getEmpresas } from "../../services/empresaService";
 
@@ -15,14 +16,28 @@ const UsuarioForm = ({ show, onClose, onSuccess }) => {
   const [saving, setSaving] = useState(false);
   const [loadingEmpresas, setLoadingEmpresas] = useState(false);
 
+  // Reset cuando se abre modal
+  useEffect(() => {
+    if (show) {
+      setFormData({
+        nombre: "",
+        email: "",
+        password: "",
+        id_empresa: "",
+      });
+      setError("");
+    }
+  }, [show]);
+
+  // Cargar empresas al abrir modal
   useEffect(() => {
     const fetchEmpresas = async () => {
       if (!show) return;
 
       try {
         setLoadingEmpresas(true);
-
         const response = await getEmpresas();
+
         if (response.success) {
           setEmpresas(response.data);
         }
@@ -35,8 +50,6 @@ const UsuarioForm = ({ show, onClose, onSuccess }) => {
 
     fetchEmpresas();
   }, [show]);
-
-  if (!show) return null;
 
   const handleClose = () => {
     setFormData({
@@ -75,15 +88,20 @@ const UsuarioForm = ({ show, onClose, onSuccess }) => {
 
       const response = await createUsuario({
         ...formData,
+        rol: "propietario",
         id_empresa: Number(formData.id_empresa),
       });
 
       if (!response.success) {
-        setError("No se pudo crear el usuario.");
+        if (response.errors && response.errors.length > 0) {
+          setError(response.errors[0].msg);
+        } else {
+          setError("No se pudo crear el usuario.");
+        }
         return;
       }
 
-      if (onSuccess) onSuccess();
+      onSuccess();
       handleClose();
     } catch (err) {
       console.error("Error al crear usuario:", err);
@@ -99,110 +117,91 @@ const UsuarioForm = ({ show, onClose, onSuccess }) => {
   };
 
   return (
-    <>
-      <div className="modal d-block" tabIndex="-1">
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Crear Usuario Propietario</h5>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={handleClose}
-                disabled={saving}
-              ></button>
-            </div>
+    <Modal
+      show={show}
+      title="Crear Usuario Propietario"
+      onClose={handleClose}
+      footer={
+        <>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleClose}
+            disabled={saving}
+          >
+            Cancelar
+          </button>
 
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                {error && (
-                  <div className="alert alert-danger small">{error}</div>
-                )}
+          <button
+            type="submit"
+            form="usuarioForm"
+            className="btn btn-primary"
+            disabled={saving}
+          >
+            {saving ? "Guardando..." : "Crear Usuario"}
+          </button>
+        </>
+      }
+    >
+      {error && <div className="alert alert-danger small">{error}</div>}
 
-                <div className="mb-3">
-                  <label className="form-label">Nombre</label>
-                  <input
-                    type="text"
-                    name="nombre"
-                    className="form-control"
-                    value={formData.nombre}
-                    onChange={handleChange}
-                    disabled={saving}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    className="form-control"
-                    value={formData.email}
-                    onChange={handleChange}
-                    disabled={saving}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Contraseña</label>
-                  <input
-                    type="password"
-                    name="password"
-                    className="form-control"
-                    value={formData.password}
-                    onChange={handleChange}
-                    disabled={saving}
-                  />
-                </div>
-
-                <div className="mb-3">
-                  <label className="form-label">Empresa</label>
-                  <select
-                    name="id_empresa"
-                    className="form-select"
-                    value={formData.id_empresa}
-                    onChange={handleChange}
-                    disabled={saving || loadingEmpresas}
-                  >
-                    <option value="">Seleccione una empresa</option>
-
-                    {empresas.map((empresa) => (
-                      <option
-                        key={empresa.id_empresa}
-                        value={empresa.id_empresa}
-                      >
-                        {empresa.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleClose}
-                  disabled={saving}
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={saving}
-                >
-                  {saving ? "Guardando..." : "Crear Usuario"}
-                </button>
-              </div>
-            </form>
-          </div>
+      <form id="usuarioForm" onSubmit={handleSubmit}>
+        <div className="mb-3">
+          <label className="form-label">Nombre</label>
+          <input
+            type="text"
+            name="nombre"
+            className="form-control"
+            value={formData.nombre}
+            onChange={handleChange}
+            disabled={saving}
+          />
         </div>
-      </div>
 
-      <div className="modal-backdrop fade show"></div>
-    </>
+        <div className="mb-3">
+          <label className="form-label">Email</label>
+          <input
+            type="email"
+            name="email"
+            className="form-control"
+            value={formData.email}
+            onChange={handleChange}
+            disabled={saving}
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Contraseña</label>
+          <input
+            type="password"
+            name="password"
+            className="form-control"
+            value={formData.password}
+            onChange={handleChange}
+            disabled={saving}
+          />
+        </div>
+
+        <div className="mb-3">
+          <label className="form-label">Empresa</label>
+          <select
+            name="id_empresa"
+            className="form-select"
+            value={formData.id_empresa}
+            onChange={handleChange}
+            disabled={saving || loadingEmpresas}
+          >
+            <option value="">Seleccione una empresa</option>
+
+            {empresas.map((empresa) => (
+              <option key={empresa.id_empresa} value={empresa.id_empresa}>
+                {empresa.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+      </form>
+    </Modal>
   );
 };
 

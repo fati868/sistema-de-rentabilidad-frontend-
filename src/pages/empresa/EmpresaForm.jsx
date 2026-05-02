@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Modal from "../../components/ui/Modal";
 import {
   createEmpresa,
   getEmpresaById,
@@ -9,55 +10,63 @@ const EmpresaForm = ({ show, onClose, onSuccess, empresaId }) => {
   const [nombre, setNombre] = useState("");
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
   const [loadingData, setLoadingData] = useState(false);
-  const [successMsg, setSuccessMsg] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
-  const isEdit = Boolean(empresaId);
-
-  const handleClose = () => {
-    setNombre("");
-    setError("");
-    setSuccessMsg("");
-    onClose();
-  };
-
-  // Precargar datos si es edición
+  // Cargar datos si es edición
   useEffect(() => {
     const fetchEmpresa = async () => {
-      if (!show || !empresaId) return;
+      if (empresaId && show) {
+        try {
+          setLoadingData(true);
+          setError("");
+          setSuccessMessage("");
 
-      try {
-        setLoadingData(true);
-        setError("");
+          const response = await getEmpresaById(empresaId);
 
-        const response = await getEmpresaById(empresaId);
-
-        if (response.success) {
-          setNombre(response.data.nombre);
-        } else {
-          setError("No se pudo cargar los datos de la empresa.");
+          if (response.success) {
+            setNombre(response.data.nombre);
+          } else {
+            setError("No se pudo cargar la empresa.");
+          }
+        } catch (err) {
+          console.error("Error al cargar empresa:", err);
+          setError("No se pudo cargar la empresa.");
+        } finally {
+          setLoadingData(false);
         }
-      } catch (err) {
-        console.error("Error al cargar empresa:", err);
-        setError("Error al cargar los datos de la empresa.");
-      } finally {
-        setLoadingData(false);
       }
     };
 
     fetchEmpresa();
   }, [empresaId, show]);
 
-  // Si no está abierto el modal, no mostrar nada
-  if (!show) return null;
+  // Reset cuando se abre para crear
+  useEffect(() => {
+    if (show && !empresaId) {
+      setNombre("");
+      setError("");
+      setSuccessMessage("");
+      setLoadingData(false);
+    }
+  }, [show, empresaId]);
+
+  const handleClose = () => {
+    setNombre("");
+    setError("");
+    setSuccessMessage("");
+    setLoadingData(false);
+    onClose();
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setSuccessMsg("");
+    setSuccessMessage("");
 
     if (!nombre.trim()) {
-      setError("El nombre de la empresa es obligatorio.");
+      setError("El nombre es obligatorio.");
       return;
     }
 
@@ -66,28 +75,34 @@ const EmpresaForm = ({ show, onClose, onSuccess, empresaId }) => {
 
       let response;
 
-      if (isEdit) {
-        response = await updateEmpresa(empresaId, { nombre: nombre.trim() });
+      if (empresaId) {
+        response = await updateEmpresa(empresaId, { nombre });
       } else {
-        response = await createEmpresa({ nombre: nombre.trim() });
+        response = await createEmpresa({ nombre });
       }
 
+      // Si backend devuelve success false
       if (!response.success) {
-        setError("No se pudo guardar la empresa.");
+        if (response.errors && response.errors.length > 0) {
+          setError(response.errors[0].msg);
+        } else {
+          setError("No se pudo guardar la empresa.");
+        }
         return;
       }
 
-      setSuccessMsg(
-        isEdit
+      // Mensaje de éxito
+      setSuccessMessage(
+        empresaId
           ? "Empresa actualizada correctamente."
-          : "Empresa creada correctamente.",
+          : "Empresa creada correctamente."
       );
 
-      if (onSuccess) onSuccess();
-
+      // Refrescar lista y cerrar modal con pequeño delay
       setTimeout(() => {
+        onSuccess();
         handleClose();
-      }, 1000);
+      }, 800);
     } catch (err) {
       console.error("Error al guardar empresa:", err);
 
@@ -102,77 +117,55 @@ const EmpresaForm = ({ show, onClose, onSuccess, empresaId }) => {
   };
 
   return (
-    <>
-      <div className="modal d-block" tabIndex="-1">
-        <div className="modal-dialog">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">
-                {isEdit ? "Editar Empresa" : "Crear Empresa"}
-              </h5>
+    <Modal
+      show={show}
+      title={empresaId ? "Editar Empresa" : "Crear Empresa"}
+      onClose={handleClose}
+      footer={
+        <>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handleClose}
+            disabled={saving || loadingData}
+          >
+            Cancelar
+          </button>
 
-              <button
-                type="button"
-                className="btn-close"
-                onClick={handleClose}
-                disabled={saving}
-              ></button>
-            </div>
+          <button
+            type="submit"
+            form="empresaForm"
+            className="btn btn-primary"
+            disabled={saving || loadingData}
+          >
+            {saving ? "Guardando..." : empresaId ? "Actualizar" : "Guardar"}
+          </button>
+        </>
+      }
+    >
+      {loadingData && (
+        <div className="alert alert-info small">Cargando datos...</div>
+      )}
 
-            <form onSubmit={handleSubmit}>
-              <div className="modal-body">
-                {loadingData && (
-                  <div className="alert alert-info small">
-                    Cargando datos de la empresa...
-                  </div>
-                )}
+      {error && <div className="alert alert-danger small">{error}</div>}
 
-                {error && (
-                  <div className="alert alert-danger small">{error}</div>
-                )}
+      {successMessage && (
+        <div className="alert alert-success small">{successMessage}</div>
+      )}
 
-                {successMsg && (
-                  <div className="alert alert-success small">{successMsg}</div>
-                )}
-
-                <div className="mb-3">
-                  <label className="form-label">Nombre</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    placeholder="Ej: Empresa ABC"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    disabled={saving || loadingData}
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={handleClose}
-                  disabled={saving}
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  className="btn btn-primary"
-                  disabled={saving || loadingData}
-                >
-                  {saving ? "Guardando..." : isEdit ? "Actualizar" : "Guardar"}
-                </button>
-              </div>
-            </form>
-          </div>
+      <form id="empresaForm" onSubmit={handleSubmit}>
+        <div className="mb-3">
+          <label className="form-label">Nombre de la Empresa</label>
+          <input
+            type="text"
+            className="form-control"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            disabled={saving || loadingData}
+          />
         </div>
-      </div>
-
-      <div className="modal-backdrop fade show"></div>
-    </>
+      </form>
+    </Modal>
   );
 };
 
