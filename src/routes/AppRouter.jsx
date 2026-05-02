@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import Login from "../pages/auth/Login";
 import EmpresaList from "../pages/empresa/EmpresaList";
-import Dashboard from "../pages/dashboard/Dashboard";
+import Rentabilidad from "../pages/rentabilidad/Rentabilidad";
 import EmpresaConfig from "../pages/empresa/EmpresaConfig";
 import UsuarioList from "../pages/usuarios/UsuarioList";
 import ProyectoList from "../pages/proyectos/ProyectoList";
@@ -17,8 +17,8 @@ export default function AppRouter() {
         path="/"
         element={
           token ? (
-            // Si es admin va a empresas, si es dueño va al dashboard[cite: 1]
-            user?.rol === "admin" ? <Navigate to="/empresas" /> : <Navigate to="/dashboard" />
+            // Si es admin va a empresas, si es dueño va al rentabilidad[cite: 1]
+            user?.rol === "admin" ? <Navigate to="/empresas" /> : <Navigate to="/rentabilidad" />
           ) : (
             <Navigate to="/login" />
           )
@@ -32,7 +32,7 @@ export default function AppRouter() {
       <Route path="/empresas" element={<EmpresaList />} />
       
       {/* Rutas de Propietario / Comunes */}
-      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/rentabilidad" element={<Rentabilidad />} />
       <Route path="/empresa-config" element={<EmpresaConfig />} />
       <Route path="/usuarios" element={<UsuarioList />} />
       <Route path="/servicios" element={<ServicioList/>} />
