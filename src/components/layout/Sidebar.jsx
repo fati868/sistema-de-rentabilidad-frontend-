@@ -74,7 +74,7 @@ const Sidebar = () => {
             to="/proyectos"
             className={`nav-link mb-2 rounded-3 p-2 ${isActive("/proyectos")}`}
           >
-            <i className="bi bi-kanban me-2"></i> Proyectos
+            <i className="bi bi-kanban mx-2"></i> Proyectos
           </Link>
         )}
 
