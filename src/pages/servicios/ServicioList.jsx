@@ -10,17 +10,17 @@ const ServicioList = () => {
 
   return (
     <Layout>
-      <div className="container-fluid px-4">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <div>
-            <h2 className="fw-bold mb-1">Servicios</h2>
-            <p className="text-muted small">Gestiona los servicios que ofrece tu empresa</p>
-          </div>
-          <button className="btn btn-primary px-4 py-2 rounded-3 fw-bold">
-            <i className="bi bi-plus-lg me-2"></i> Nuevo servicio
-          </button>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h3 className="fw-bold">Gestión de Servicios</h3>
+          <p className="text-muted small">
+            Administra los servicios registrados en el sistema
+          </p>
         </div>
 
+        {/* <CreateButton label="Crear Servicio" onClick={handleCreate} /> */}
+      </div>
+      <div className="container-fluid px-4">
         <div className="row g-4">
           {servicios.map((servicio) => (
             <div className="col-md-4" key={servicio.id}>
