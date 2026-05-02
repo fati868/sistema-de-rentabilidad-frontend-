@@ -1,50 +1,48 @@
-import React, { useState, useEffect } from 'react';
-import Layout from '../../components/layout/Layout';
-import { getEmpresaById, updateEmpresa } from '../../services/empresaService';
-import 'bootstrap/dist/css/bootstrap.min.css';
+import React, { useState, useEffect } from "react";
+import Layout from "../../components/layout/Layout";
+import { useAuth } from "../../context/AuthContext";
+import { getEmpresaById, updateEmpresa } from "../../services/empresaService";
 
 const EmpresaConfig = () => {
-  const [nombre, setNombre] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [mensaje, setMensaje] = useState({ texto: '', tipo: '' });
-
-  // Obtener el ID de la empresa del usuario logueado
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { user } = useAuth();
   const empresaId = user?.id_empresa;
 
-  // Cargar datos actuales de la empresa al entrar
+  const [nombre, setNombre]   = useState("");
+  const [loading, setLoading] = useState(false);
+  const [fetching, setFetching] = useState(true);
+  const [mensaje, setMensaje] = useState({ texto: "", tipo: "" });
+
   useEffect(() => {
-    const fetchEmpresa = async () => {
-      if (!empresaId) return;
-      try {
-        const response = await getEmpresaById(empresaId);
-        if (response.success) {
-          setNombre(response.data.nombre);
-        }
-      } catch (err) {
-        console.error("Error al cargar datos:", err);
-      }
-    };
-    fetchEmpresa();
+    if (!empresaId) {
+      setMensaje({ texto: "No se encontró la empresa asociada a tu cuenta.", tipo: "danger" });
+      setFetching(false);
+      return;
+    }
+    getEmpresaById(empresaId)
+      .then((res) => {
+        if (res?.success) setNombre(res.data.nombre);
+        else setMensaje({ texto: "No se pudo cargar la empresa.", tipo: "danger" });
+      })
+      .catch(() => setMensaje({ texto: "Error al cargar los datos.", tipo: "danger" }))
+      .finally(() => setFetching(false));
   }, [empresaId]);
 
   const handleGuardar = async () => {
     if (!nombre.trim()) {
-      setMensaje({ texto: 'El nombre no puede estar vacío.', tipo: 'danger' });
+      setMensaje({ texto: "El nombre no puede estar vacío.", tipo: "danger" });
       return;
     }
-
     try {
       setLoading(true);
-      setMensaje({ texto: '', tipo: '' });
-      const response = await updateEmpresa(empresaId, { nombre: nombre.trim() });
-      
-      if (response.success) {
-        setMensaje({ texto: 'Cambios guardados correctamente.', tipo: 'success' });
-        // Actualizamos el objeto user en localStorage si es necesario
+      setMensaje({ texto: "", tipo: "" });
+      const res = await updateEmpresa(empresaId, { nombre: nombre.trim() });
+      if (res?.success) {
+        setMensaje({ texto: "Cambios guardados correctamente.", tipo: "success" });
+      } else {
+        setMensaje({ texto: res?.message || "Error al actualizar.", tipo: "danger" });
       }
     } catch (err) {
-      setMensaje({ texto: 'Error al actualizar la empresa.', tipo: 'danger' });
+      setMensaje({ texto: err.response?.data?.message || "Error al actualizar la empresa.", tipo: "danger" });
     } finally {
       setLoading(false);
     }
@@ -52,56 +50,69 @@ const EmpresaConfig = () => {
 
   return (
     <Layout>
-      <div className="container-fluid px-4 py-2">
-        <div className="mb-4 text-center text-md-start">
-          <h2 className="fw-bold mb-1">Configuración de Empresa</h2>
-          <p className="text-muted small">Edita la información de tu empresa</p>
+      <div className="animate-fadeInUp">
+        <div className="page-header">
+          <h2 className="fw-bold mb-1">Mi Empresa</h2>
+          <p className="text-muted small mb-0">Configura la información de tu empresa</p>
         </div>
 
-        <div className="card border-0 shadow-sm rounded-4 mx-auto" style={{ maxWidth: '600px' }}>
-          <div className="card-body p-4">
-            <div className="d-flex align-items-center mb-4">
-              <div className="bg-primary-subtle text-primary rounded-3 p-2 me-3">
-                <i className="bi bi-building fs-4"></i>
+        <div className="row justify-content-center">
+          <div className="col-12 col-md-8 col-lg-6">
+            <div className="card border-0 rounded-4 overflow-hidden" style={{ boxShadow: "var(--shadow-md)" }}>
+              <div style={{ height: 4, background: "linear-gradient(90deg,var(--primary),var(--accent))" }}></div>
+              <div className="card-body p-4 p-md-5">
+
+                <div className="d-flex align-items-center gap-3 mb-4">
+                  <div className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: 48, height: 48, background: "rgba(79,70,229,.1)" }}>
+                    <i className="bi bi-building-fill" style={{ color: "var(--primary)", fontSize: 22 }}></i>
+                  </div>
+                  <div>
+                    <h5 className="fw-bold mb-0">Información de la empresa</h5>
+                    <p className="text-muted small mb-0">ID de empresa: #{empresaId || "—"}</p>
+                  </div>
+                </div>
+
+                {mensaje.texto && (
+                  <div className={`alert alert-${mensaje.tipo} d-flex align-items-center py-2 small rounded-3 mb-4`}>
+                    <i className={`bi ${mensaje.tipo === "success" ? "bi-check-circle-fill" : "bi-exclamation-circle-fill"} me-2`}></i>
+                    {mensaje.texto}
+                  </div>
+                )}
+
+                {fetching ? (
+                  <div className="skeleton rounded-3 mb-3" style={{ height: 44 }}></div>
+                ) : (
+                  <div className="mb-4">
+                    <label className="form-label fw-semibold small">Nombre de la empresa</label>
+                    <input
+                      type="text"
+                      className="form-control form-control-lg"
+                      value={nombre}
+                      onChange={(e) => setNombre(e.target.value)}
+                      placeholder="Nombre de tu empresa"
+                      disabled={loading}
+                    />
+                  </div>
+                )}
+
+                <div className="alert alert-info border-0 rounded-3 small d-flex align-items-start mb-4"
+                  style={{ background: "rgba(79,70,229,.06)", color: "var(--primary)" }}>
+                  <i className="bi bi-info-circle-fill me-2 mt-1 flex-shrink-0"></i>
+                  Solo puedes modificar el nombre. Otros datos son gestionados por el administrador.
+                </div>
+
+                <button
+                  className="btn btn-primary w-100 py-2 fw-bold"
+                  onClick={handleGuardar}
+                  disabled={loading || fetching}
+                >
+                  {loading
+                    ? <><span className="spinner-border spinner-border-sm me-2"></span>Guardando...</>
+                    : <><i className="bi bi-save me-2"></i>Guardar cambios</>}
+                </button>
               </div>
-              <h5 className="fw-bold mb-0">Información de la Empresa</h5>
             </div>
-
-            {mensaje.texto && (
-              <div className={`alert alert-${mensaje.tipo} small py-2 fade show`}>
-                {mensaje.texto}
-              </div>
-            )}
-
-            <div className="mb-4">
-              <label className="form-label text-muted small fw-bold">Nombre de la Empresa</label>
-              <input 
-                type="text" 
-                className="form-control form-control-lg bg-light border-0 fs-6" 
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Tech Solutions SA"
-                disabled={loading}
-              />
-            </div>
-
-            <div className="alert alert-info border-0 rounded-3 small d-flex align-items-start mb-4" style={{ backgroundColor: '#eef6ff', color: '#055160' }}>
-              <i className="bi bi-info-circle-fill me-2 mt-1"></i>
-              <span>Solo puedes editar el nombre de la empresa. Otros datos son gestionados por el administrador.</span>
-            </div>
-
-            <button 
-              className="btn btn-primary w-100 py-2 fw-bold shadow-sm" 
-              onClick={handleGuardar}
-              disabled={loading}
-            >
-              {loading ? (
-                <span className="spinner-border spinner-border-sm me-2"></span>
-              ) : (
-                <i className="bi bi-save me-2"></i>
-              )}
-              {loading ? 'Guardando...' : 'Guardar cambios'}
-            </button>
           </div>
         </div>
       </div>

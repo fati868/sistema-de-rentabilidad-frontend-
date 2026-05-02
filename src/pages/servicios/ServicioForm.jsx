@@ -1,0 +1,108 @@
+import React, { useState, useEffect } from "react";
+import {
+  createServicio,
+  updateServicio,
+  getServicioById,
+} from "../../services/servicioService";
+
+const ServicioForm = ({ servicioId, onSaved, onCancel }) => {
+  const [form, setForm] = useState({ nombre: "", descripcion: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!servicioId) return;
+    getServicioById(servicioId)
+      .then((res) => {
+        if (res?.success) {
+          setForm({
+            nombre: res.data.nombre || "",
+            descripcion: res.data.descripcion || "",
+          });
+        }
+      })
+      .catch(() => setError("No se pudo cargar el servicio."));
+  }, [servicioId]);
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const response = servicioId
+        ? await updateServicio(servicioId, form)
+        : await createServicio(form);
+
+      if (response?.success) {
+        onSaved?.();
+      } else {
+        setError(response?.message || "Error al guardar el servicio.");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Error al guardar el servicio.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="card shadow-sm border-0 mb-4 rounded-4">
+      <div className="card-body p-4">
+        <div className="d-flex justify-content-between align-items-center mb-3">
+          <h5 className="mb-0 fw-bold">
+            {servicioId ? "Editar servicio" : "Crear nuevo servicio"}
+          </h5>
+          <button
+            type="button"
+            className="btn btn-sm btn-outline-secondary rounded-3"
+            onClick={onCancel}
+          >
+            Cancelar
+          </button>
+        </div>
+
+        {error && <div className="alert alert-danger small">{error}</div>}
+
+        <form onSubmit={handleSubmit}>
+          <div className="mb-3">
+            <label className="form-label fw-medium small">Nombre</label>
+            <input
+              type="text"
+              name="nombre"
+              value={form.nombre}
+              onChange={handleChange}
+              className="form-control bg-light border-0"
+              required
+              minLength={3}
+            />
+          </div>
+          <div className="mb-4">
+            <label className="form-label fw-medium small">
+              Descripción{" "}
+              <span className="text-muted fw-normal">(opcional)</span>
+            </label>
+            <textarea
+              name="descripcion"
+              value={form.descripcion}
+              onChange={handleChange}
+              className="form-control bg-light border-0"
+              rows={3}
+            />
+          </div>
+          <button type="submit" className="btn btn-primary w-100" disabled={loading}>
+            {loading
+              ? <><span className="spinner-border spinner-border-sm me-2"></span>Guardando...</>
+              : servicioId ? "Guardar cambios" : "Crear servicio"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ServicioForm;
