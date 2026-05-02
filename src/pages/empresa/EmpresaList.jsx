@@ -98,13 +98,80 @@ const EmpresaList = () => {
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <DataTable
-        columns={columns}
-        data={empresas}
-        loading={loading}
-        emptyMessage="No se encontraron empresas registradas."
-        renderActions={renderActions}
-      />
+      <div className="card shadow-sm border-0 rounded-3">
+        <div className="card-body p-0">
+          <div className="table-responsive">
+            <table className="table table-hover align-middle mb-0">
+              <thead className="bg-light">
+                <tr>
+                  <th
+                    className="ps-4 py-3 text-muted fw-semibold"
+                    style={{ width: "100px" }}
+                  >
+                    ID
+                  </th>
+
+                  <th className="py-3 text-muted fw-semibold">
+                    Nombre de la Empresa
+                  </th>
+
+                  <th className="py-3 text-muted fw-semibold">
+                    Propietario
+                  </th>
+
+                  <th className="pe-4 py-3 text-muted fw-semibold text-end">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {loading ? (
+                  <tr>
+                    <td colSpan="4" className="text-center py-5">
+                      <div className="spinner-border text-primary spinner-border-sm me-2"></div>
+                      Cargando empresas...
+                    </td>
+                  </tr>
+                ) : empresas.length > 0 ? (
+                  empresas.map((empresa) => (
+                    <tr key={empresa.id_empresa}>
+                      <td className="ps-4 fw-bold text-primary">
+                        #{empresa.id_empresa}
+                      </td>
+
+                      <td className="fw-medium">{empresa.empresa_nombre}</td>
+
+                      <td className="text-muted">
+                        {empresa.propietario_nombre || ""}
+                      </td>
+
+                      <td className="pe-4 text-end">
+                        <button
+                          className="btn btn-sm btn-success px-3 me-2"
+                          onClick={() => handleEdit(empresa.id_empresa)}
+                        >
+                          <i className="bi bi-pencil-square me-1"></i> Editar
+                        </button>
+
+                        <button className="btn btn-sm btn-outline-danger px-3">
+                          <i className="bi bi-trash"></i>
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="text-center py-5 text-muted">
+                      No se encontraron empresas registradas.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
 
       {/* Modal */}
       <EmpresaForm
