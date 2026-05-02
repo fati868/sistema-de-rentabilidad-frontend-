@@ -42,15 +42,28 @@ const Sidebar = () => {
       </div>
 
       <nav className="nav flex-column px-3 flex-grow-1">
+
+        {/* Rentabilidad: Solo si NO es Admin */}
+        {rol !== "admin" && (
+          <Link
+            to="/rentabilidad"
+            className={`nav-link mb-2 rounded-3 p-2 ${isActive("/rentabilidad")}`}
+          >
+            <i className="bi bi-graph-up mx-2"></i> Rentabilidad
+          </Link>
+        )}
+
         {/* Empresa: Los Admin van a la lista general, los Dueños a su configuración */}
         <Link
           to={rol === "admin" ? "/empresas" : "/empresa-config"}
-          className={`nav-link mb-2 rounded-3 p-2 ${isActive(rol === "admin" ? "/empresas" : "/empresa-config")}`}
+          className={`nav-link mb-2 rounded-3 p-2 ${isActive(
+            rol === "admin" ? "/empresas" : "/empresa-config"
+          )}`}
         >
           <i className="bi bi-building mx-2"></i> Empresa
         </Link>
 
-        {/* Servicios: Solo para Dueños */}
+        {/* Servicios: Solo para Propietario */}
         {rol === "propietario" && (
           <Link
             to="/servicios"
@@ -60,7 +73,7 @@ const Sidebar = () => {
           </Link>
         )}
 
-        {/* Usuarios: Visible para Admin y Dueño */}
+        {/* Usuarios: Visible para Admin y Propietario */}
         <Link
           to="/usuarios"
           className={`nav-link mb-2 rounded-3 p-2 ${isActive("/usuarios")}`}
@@ -74,11 +87,10 @@ const Sidebar = () => {
             to="/proyectos"
             className={`nav-link mb-2 rounded-3 p-2 ${isActive("/proyectos")}`}
           >
-            <i className="bi bi-kanban me-2"></i> Proyectos
+            <i className="bi bi-kanban mx-2"></i> Proyectos
           </Link>
         )}
 
-        {/* "Reportes" ha sido eliminado según tus indicaciones */}
       </nav>
 
       <div className="p-4 border-top">

@@ -47,7 +47,7 @@ const Login = () => {
       if (data.user.rol === "admin") {
         window.location.href = "/empresas";
       } else {
-        window.location.href = "/dashboard";
+        window.location.href = "/rentabilidad";
       }
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
