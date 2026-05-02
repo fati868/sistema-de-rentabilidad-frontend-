@@ -6,6 +6,11 @@ export const getUsuarios = async () => {
   return response.data;
 };
 
+export const createUsuario = async (formData) => {
+  const response = await api.post("/usuarios", formData);
+  return response.data;
+};
+
 // Eliminar un usuario
 export const deleteUsuario = async (id) => {
   const response = await api.delete(`/usuarios/${id}`);

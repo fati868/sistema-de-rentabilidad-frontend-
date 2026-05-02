@@ -2,16 +2,20 @@ import React, { useState, useEffect } from "react";
 import Layout from "../../components/layout/Layout";
 import { getUsuarios, deleteUsuario } from "../../services/usuarioService";
 import "bootstrap/dist/css/bootstrap.min.css";
+import UsuarioForm from "./UsuarioForm";
 
 const UsuarioList = () => {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const [showModal, setShowModal] = useState(false);
+
   const fetchUsuarios = async () => {
     try {
       setLoading(true);
       const response = await getUsuarios();
+
       if (response.success) {
         setUsuarios(response.data);
       } else {
@@ -33,10 +37,12 @@ const UsuarioList = () => {
     if (window.confirm("¿Estás seguro de eliminar este usuario?")) {
       try {
         const response = await deleteUsuario(id);
+
         if (response.success) {
-          fetchUsuarios(); // Recargar lista
+          fetchUsuarios();
         }
       } catch (err) {
+        console.error("Error al eliminar usuario:", err);
         alert("Error al eliminar el usuario.");
       }
     }
@@ -47,9 +53,15 @@ const UsuarioList = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h3 className="fw-bold">Gestión de Usuarios</h3>
-          <p className="text-muted small">Administra las cuentas de acceso al sistema</p>
+          <p className="text-muted small">
+            Administra las cuentas de acceso al sistema
+          </p>
         </div>
-        <button className="btn btn-primary px-4">
+
+        <button
+          className="btn btn-primary px-4"
+          onClick={() => setShowModal(true)}
+        >
           <i className="bi bi-person-plus me-2"></i>Crear Usuario
         </button>
       </div>
@@ -62,31 +74,48 @@ const UsuarioList = () => {
             <table className="table table-hover align-middle mb-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="ps-4 py-3 text-muted fw-semibold" style={{ width: "100px" }}>ID</th>
+                  <th
+                    className="ps-4 py-3 text-muted fw-semibold"
+                    style={{ width: "100px" }}
+                  >
+                    ID
+                  </th>
                   <th className="py-3 text-muted fw-semibold">Nombre</th>
                   <th className="py-3 text-muted fw-semibold">Email</th>
-                  <th className="pe-4 py-3 text-muted fw-semibold text-end">Acciones</th>
+                  <th className="py-3 text-muted fw-semibold">Empresa</th>
+                  <th className="pe-4 py-3 text-muted fw-semibold text-end">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
+
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="4" className="text-center py-5">
+                    <td colSpan="5" className="text-center py-5">
                       <div className="spinner-border text-primary spinner-border-sm me-2"></div>
                       Cargando usuarios...
                     </td>
                   </tr>
                 ) : usuarios.length > 0 ? (
                   usuarios.map((user) => (
-                    <tr key={user.id}>
-                      <td className="ps-4 fw-bold text-primary">#{user.id_usuario}</td>
+                    <tr key={user.id_usuario}>
+                      <td className="ps-4 fw-bold text-primary">
+                        #{user.id_usuario}
+                      </td>
                       <td className="fw-medium">{user.nombre}</td>
                       <td className="text-muted">{user.email}</td>
+
+                      <td className="text-muted">
+                        {user.empresa_nombre}
+                      </td>
+
                       <td className="pe-4 text-end">
                         <button className="btn btn-sm btn-success px-3 me-2">
                           <i className="bi bi-pencil-square"></i> Editar
                         </button>
-                        <button 
+
+                        <button
                           className="btn btn-sm btn-danger px-3"
                           onClick={() => handleDelete(user.id_usuario)}
                         >
@@ -97,7 +126,7 @@ const UsuarioList = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="4" className="text-center py-5 text-muted">
+                    <td colSpan="5" className="text-center py-5 text-muted">
                       No hay usuarios registrados.
                     </td>
                   </tr>
@@ -107,6 +136,13 @@ const UsuarioList = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal Crear Usuario */}
+      <UsuarioForm
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onSuccess={fetchUsuarios}
+      />
     </Layout>
   );
 };
