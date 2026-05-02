@@ -37,11 +37,14 @@ const Login = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      console.log("Login exitoso:", data);
       alert("¡Inicio de sesión exitoso!");
 
-      // Redireccionar a lista de empresas
-      window.location.href = "/empresas";
+      // Redireccionar según rol
+      if (data.user.rol === "admin") {
+        window.location.href = "/empresas";
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err) {
       console.error("Error al iniciar sesión:", err);
       setError(
