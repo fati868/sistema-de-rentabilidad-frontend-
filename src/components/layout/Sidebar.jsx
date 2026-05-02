@@ -49,7 +49,7 @@ const Sidebar = () => {
         </Link>
 
         {/* Servicios: Solo para Dueños */}
-        {rol === 'dueño' && (
+        {rol === 'propietario' && (
           <Link to="/servicios" className={`nav-link mb-2 rounded-3 p-2 ${isActive('/servicios')}`}>
             <i className="bi bi-briefcase me-2"></i> Servicios
           </Link>

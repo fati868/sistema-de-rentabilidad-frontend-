@@ -79,7 +79,7 @@ const UsuarioList = () => {
                 ) : usuarios.length > 0 ? (
                   usuarios.map((user) => (
                     <tr key={user.id}>
-                      <td className="ps-4 fw-bold text-primary">#{user.id}</td>
+                      <td className="ps-4 fw-bold text-primary">#{user.id_usuario}</td>
                       <td className="fw-medium">{user.nombre}</td>
                       <td className="text-muted">{user.email}</td>
                       <td className="pe-4 text-end">
@@ -88,7 +88,7 @@ const UsuarioList = () => {
                         </button>
                         <button 
                           className="btn btn-sm btn-danger px-3"
-                          onClick={() => handleDelete(user.id)}
+                          onClick={() => handleDelete(user.id_usuario)}
                         >
                           <i className="bi bi-trash"></i> Eliminar
                         </button>

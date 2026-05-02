@@ -29,7 +29,7 @@ export default function AppRouter() {
       {/* Rutas de Admin */}
       <Route path="/empresas" element={<EmpresaList />} />
       
-      {/* Rutas de Dueño / Comunes */}
+      {/* Rutas de Propietario / Comunes */}
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/empresa-config" element={<EmpresaConfig />} />
       <Route path="/usuarios" element={<UsuarioList />} />
