@@ -104,7 +104,7 @@ const EmpresaList = () => {
                         #{empresa.id_empresa}
                       </td>
 
-                      <td className="fw-medium">{empresa.nombre}</td>
+                      <td className="fw-medium">{empresa.empresa_nombre}</td>
 
                       <td className="text-muted">
                         {empresa.propietario_nombre || ""}
