@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { login } from "../../services/authService"; // Servicio de login
+import Swal from "sweetalert2";
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -37,7 +38,10 @@ const Login = () => {
       localStorage.setItem("token", data.token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      alert("¡Inicio de sesión exitoso!");
+      Swal.fire({
+        title: "¡Inicio de sesión exitoso!",
+        icon: "success",
+      });
 
       // Redireccionar según rol
       if (data.user.rol === "admin") {
@@ -56,13 +60,18 @@ const Login = () => {
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center vh-100 bg-light">
+    <div className="container-fluid d-flex justify-content-center align-items-center vh-100 bg-light">
       <div
-        className="card p-4 shadow-sm"
-        style={{ width: "100%", maxWidth: "400px" }}
+        className="card p-4 shadow-lg border-0 rounded-4"
+        style={{ width: "100%", maxWidth: "450px" }}
       >
         <div className="card-body">
-          <h2 className="card-title text-center mb-4">Iniciar Sesión</h2>
+          <h2 className="card-title text-center mb-2">
+            ¡Bienvenid@ de vuelta!
+          </h2>
+          <p class="card-subtitle text-center mb-4 text-body-secondary">
+            Ingresa tus credenciales para continuar
+          </p>
 
           {/* Mostrar mensaje de error si existe */}
           {error && <div className="alert alert-danger small">{error}</div>}
@@ -96,10 +105,10 @@ const Login = () => {
 
             <button
               type="submit"
-              className="btn btn-primary w-100 mt-2"
+              className="btn btn-primary w-100 mt-3 py-2 rounded-3"
               disabled={loading}
             >
-              {loading ? "Ingresando..." : "Ingresar"}
+              {loading ? "Ingresando..." : "Iniciar Sesión"}
             </button>
           </form>
 
