@@ -3,6 +3,33 @@ import Layout from "../../components/layout/Layout";
 import { getUsuarios, deleteUsuario } from "../../services/usuarioService";
 import "bootstrap/dist/css/bootstrap.min.css";
 import UsuarioForm from "./UsuarioForm";
+import CreateButton from "../../components/ui/CreateButton";
+import DataTable from "../../components/ui/DataTable";
+
+const columns = [
+  {
+    header: "ID",
+    accessor: "id_usuario",
+    className: "ps-4",
+    cellClassName: "ps-4 text-primary",
+    style: { width: "100px" },
+  },
+  {
+    header: "Nombre",
+    accessor: "nombre",
+    cellClassName: "fw-medium",
+  },
+  {
+    header: "Email",
+    accessor: "email",
+    cellClassName: "text-muted",
+  },
+  {
+    header: "Empresa",
+    accessor: "empresa_nombre",
+    cellClassName: "text-muted",
+  },
+];
 
 const UsuarioList = () => {
   const [usuarios, setUsuarios] = useState([]);
@@ -10,6 +37,21 @@ const UsuarioList = () => {
   const [error, setError] = useState("");
 
   const [showModal, setShowModal] = useState(false);
+
+  const renderActions = (user) => (
+    <>
+      <button className="btn btn-sm btn-outline-success px-3 me-2">
+        <i className="bi bi-pencil-square"></i>
+      </button>
+
+      <button
+        className="btn btn-sm btn-outline-danger px-3"
+        onClick={() => handleDelete(user.id_usuario)}
+      >
+        <i className="bi bi-trash"></i>
+      </button>
+    </>
+  );
 
   const fetchUsuarios = async () => {
     try {
@@ -59,7 +101,7 @@ const UsuarioList = () => {
         <div>
           <h3 className="fw-bold">Gestión de Usuarios</h3>
           <p className="text-muted small">
-            Administra las cuentas de acceso al sistema
+            Administra las cuentas registradas en el sistema
           </p>
         </div>
 

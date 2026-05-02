@@ -3,6 +3,29 @@ import Layout from "../../components/layout/Layout";
 import EmpresaForm from "./EmpresaForm";
 import { getEmpresas } from "../../services/empresaService";
 import "bootstrap/dist/css/bootstrap.min.css";
+import CreateButton from "../../components/ui/CreateButton";
+import DataTable from "../../components/ui/DataTable";
+
+const columns = [
+  {
+    header: "ID",
+    accessor: "id_empresa",
+    className: "ps-4",
+    cellClassName: "ps-4 text-primary",
+    style: { width: "100px" },
+  },
+  {
+    header: "Nombre",
+    accessor: "empresa_nombre",
+    cellClassName: "fw-medium",
+  },
+  {
+    header: "Propietario",
+    accessor: "propietario_nombre",
+    cellClassName: "text-muted",
+    render: (row) => row.propietario_nombre || "",
+  },
+];
 
 const EmpresaList = () => {
   const [empresas, setEmpresas] = useState([]);
@@ -11,6 +34,21 @@ const EmpresaList = () => {
 
   const [showModal, setShowModal] = useState(false);
   const [empresaId, setEmpresaId] = useState(null);
+
+  const renderActions = (empresa) => (
+    <>
+      <button
+        className="btn btn-sm btn-outline-success px-3 me-2"
+        onClick={() => handleEdit(empresa.id_empresa)}
+      >
+        <i className="bi bi-pencil-square me-1"></i>
+      </button>
+
+      <button className="btn btn-sm btn-outline-danger px-3">
+        <i className="bi bi-trash"></i>
+      </button>
+    </>
+  );
 
   const fetchEmpresas = async () => {
     try {
@@ -55,9 +93,7 @@ const EmpresaList = () => {
           </p>
         </div>
 
-        <button className="btn btn-primary px-4" onClick={handleCreate}>
-          <i className="bi bi-plus-lg me-2"></i>Crear Empresa
-        </button>
+        <CreateButton label="Crear Empresa" onClick={handleCreate} />
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
