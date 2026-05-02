@@ -47,7 +47,7 @@ const EmpresaList = () => {
 
   return (
     <Layout>
-      <div className="d-flex justify-content-between align-items-center mb-4">
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <div>
           <h3 className="fw-bold">Gestión de Empresas</h3>
           <p className="text-muted small">
@@ -55,24 +55,30 @@ const EmpresaList = () => {
           </p>
         </div>
 
-        <button className="btn btn-primary px-4" onClick={handleCreate}>
+        <button
+          className="btn btn-primary px-4 rounded-3 py-2"
+          onClick={handleCreate}
+        >
           <i className="bi bi-plus-lg me-2"></i>Crear Empresa
         </button>
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
 
-      <div className="card shadow-sm border-0 rounded-3">
+      <div className="card shadow-sm border-0 rounded-4 overflow-hidden">
         <div className="card-body p-0">
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="ps-4 py-3 text-muted fw-semibold" style={{ width: "100px" }}>
+                  <th
+                    className="ps-4 py-3 text-muted fw-semibold"
+                    style={{ width: "100px" }}
+                  >
                     ID
                   </th>
                   <th className="py-3 text-muted fw-semibold">
-                    Nombre de la Empresa
+                    Nombre
                   </th>
                   <th className="pe-4 py-3 text-muted fw-semibold text-end">
                     Acciones
@@ -92,15 +98,15 @@ const EmpresaList = () => {
                   empresas.map((empresa) => (
                     <tr key={empresa.id_empresa}>
                       <td className="ps-4 fw-bold text-primary">
-                        #{empresa.id_empresa}
+                        {empresa.id_empresa}
                       </td>
                       <td className="fw-medium">{empresa.nombre}</td>
                       <td className="pe-4 text-end">
                         <button
-                          className="btn btn-sm btn-success px-3 me-2"
+                          className="btn btn-sm btn-outline-success px-3 me-2"
                           onClick={() => handleEdit(empresa.id_empresa)}
                         >
-                          <i className="bi bi-pencil-square me-1"></i> Editar
+                          <i className="bi bi-pencil-square me-1"></i>
                         </button>
 
                         <button className="btn btn-sm btn-outline-danger px-3">
@@ -117,7 +123,6 @@ const EmpresaList = () => {
                   </tr>
                 )}
               </tbody>
-
             </table>
           </div>
         </div>
