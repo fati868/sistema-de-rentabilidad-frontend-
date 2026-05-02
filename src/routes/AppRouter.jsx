@@ -4,6 +4,8 @@ import EmpresaList from "../pages/empresa/EmpresaList";
 import Dashboard from "../pages/dashboard/Dashboard";
 import EmpresaConfig from "../pages/empresa/EmpresaConfig";
 import UsuarioList from "../pages/usuarios/UsuarioList";
+import ProyectoList from "../pages/proyectos/ProyectoList";
+import ServicioList from "../pages/servicios/ServicioList";
 
 export default function AppRouter() {
   const token = localStorage.getItem("token");
@@ -33,6 +35,8 @@ export default function AppRouter() {
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/empresa-config" element={<EmpresaConfig />} />
       <Route path="/usuarios" element={<UsuarioList />} />
+      <Route path="/servicios" element={<ServicioList/>} />
+      <Route path="/proyectos" element={<ProyectoList />} />
       
       <Route path="*" element={<h2>Página no encontrada</h2>} />
     </Routes>
