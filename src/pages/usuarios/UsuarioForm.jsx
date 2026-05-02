@@ -16,7 +16,7 @@ const UsuarioForm = ({ show, onClose, onSuccess }) => {
   const [saving, setSaving] = useState(false);
   const [loadingEmpresas, setLoadingEmpresas] = useState(false);
 
-  // Resetear formulario cuando se abre el modal
+  // Reset cuando se abre modal
   useEffect(() => {
     if (show) {
       setFormData({
@@ -29,15 +29,15 @@ const UsuarioForm = ({ show, onClose, onSuccess }) => {
     }
   }, [show]);
 
-  // Cargar empresas al abrir el modal
+  // Cargar empresas al abrir modal
   useEffect(() => {
     const fetchEmpresas = async () => {
       if (!show) return;
 
       try {
         setLoadingEmpresas(true);
-
         const response = await getEmpresas();
+
         if (response.success) {
           setEmpresas(response.data);
         }
@@ -92,12 +92,17 @@ const UsuarioForm = ({ show, onClose, onSuccess }) => {
         id_empresa: Number(formData.id_empresa),
       });
 
-      if (response.success) {
-        onSuccess();
-        handleClose();
-      } else {
-        setError("No se pudo crear el usuario.");
+      if (!response.success) {
+        if (response.errors && response.errors.length > 0) {
+          setError(response.errors[0].msg);
+        } else {
+          setError("No se pudo crear el usuario.");
+        }
+        return;
       }
+
+      onSuccess();
+      handleClose();
     } catch (err) {
       console.error("Error al crear usuario:", err);
 

@@ -33,6 +33,11 @@ const UsuarioList = () => {
     fetchUsuarios();
   }, []);
 
+  // ✅ Crear usuario (abre modal)
+  const handleCreate = () => {
+    setShowModal(true);
+  };
+
   const handleDelete = async (id) => {
     if (window.confirm("¿Estás seguro de eliminar este usuario?")) {
       try {
@@ -58,10 +63,7 @@ const UsuarioList = () => {
           </p>
         </div>
 
-        <button
-          className="btn btn-primary px-4"
-          onClick={() => setShowModal(true)}
-        >
+        <button className="btn btn-primary px-4" onClick={handleCreate}>
           <i className="bi bi-person-plus me-2"></i>Crear Usuario
         </button>
       </div>
@@ -103,11 +105,12 @@ const UsuarioList = () => {
                       <td className="ps-4 fw-bold text-primary">
                         #{user.id_usuario}
                       </td>
+
                       <td className="fw-medium">{user.nombre}</td>
                       <td className="text-muted">{user.email}</td>
 
                       <td className="text-muted">
-                        {user.empresa_nombre}
+                        {user.empresa_nombre || ""}
                       </td>
 
                       <td className="pe-4 text-end">
