@@ -68,12 +68,21 @@ const EmpresaList = () => {
             <table className="table table-hover align-middle mb-0">
               <thead className="bg-light">
                 <tr>
-                  <th className="ps-4 py-3 text-muted fw-semibold" style={{ width: "100px" }}>
+                  <th
+                    className="ps-4 py-3 text-muted fw-semibold"
+                    style={{ width: "100px" }}
+                  >
                     ID
                   </th>
+
                   <th className="py-3 text-muted fw-semibold">
                     Nombre de la Empresa
                   </th>
+
+                  <th className="py-3 text-muted fw-semibold">
+                    Propietario
+                  </th>
+
                   <th className="pe-4 py-3 text-muted fw-semibold text-end">
                     Acciones
                   </th>
@@ -83,7 +92,7 @@ const EmpresaList = () => {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="3" className="text-center py-5">
+                    <td colSpan="4" className="text-center py-5">
                       <div className="spinner-border text-primary spinner-border-sm me-2"></div>
                       Cargando empresas...
                     </td>
@@ -94,7 +103,13 @@ const EmpresaList = () => {
                       <td className="ps-4 fw-bold text-primary">
                         #{empresa.id_empresa}
                       </td>
+
                       <td className="fw-medium">{empresa.nombre}</td>
+
+                      <td className="text-muted">
+                        {empresa.propietario_nombre || ""}
+                      </td>
+
                       <td className="pe-4 text-end">
                         <button
                           className="btn btn-sm btn-success px-3 me-2"
@@ -111,13 +126,12 @@ const EmpresaList = () => {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="3" className="text-center py-5 text-muted">
+                    <td colSpan="4" className="text-center py-5 text-muted">
                       No se encontraron empresas registradas.
                     </td>
                   </tr>
                 )}
               </tbody>
-
             </table>
           </div>
         </div>
