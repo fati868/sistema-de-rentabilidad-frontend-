@@ -105,7 +105,7 @@ const UsuarioList = () => {
           </p>
         </div>
 
-        {/* <CreateButton label="Crear Usuario" onClick={handleCreate} /> */}
+        {<CreateButton label="Crear Usuario" onClick={handleCreate} /> }
       </div>
 
       {error && <div className="alert alert-danger">{error}</div>}
