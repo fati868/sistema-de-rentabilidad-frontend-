@@ -1,105 +1,190 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { getEmpresaById } from "../../services/empresaService";
+
+/* Nav items por rol — solo se muestran los que el usuario puede usar */
+const getNavItems = (rol) => {
+  switch (rol) {
+    case "admin":
+      return [
+        { to: "/admin-dashboard", icon: "bi-grid-fill",      label: "Resumen" },
+        { to: "/empresas",        icon: "bi-building-fill",   label: "Empresas" },
+        { to: "/propietarios",    icon: "bi-people-fill",     label: "Propietarios" },
+        { to: "/perfil",          icon: "bi-person-circle",   label: "Mi Perfil" },
+      ];
+    case "propietario":
+      return [
+        { to: "/dashboard",      icon: "bi-grid-fill",        label: "Dashboard" },
+        { to: "/empresa-config", icon: "bi-building",         label: "Mi Empresa" },
+        { to: "/usuarios",       icon: "bi-people-fill",      label: "Usuarios" },
+        { to: "/servicios",      icon: "bi-briefcase-fill",   label: "Servicios" },
+        { to: "/proyectos",      icon: "bi-kanban-fill",      label: "Proyectos" },
+        { to: "/perfil",         icon: "bi-person-circle",    label: "Mi Perfil" },
+      ];
+    case "lider":
+      return [
+        { to: "/panel-lider", icon: "bi-grid-fill",       label: "Mi Panel" },
+        { to: "/proyectos",   icon: "bi-kanban-fill",     label: "Proyectos" },
+        { to: "/usuarios",    icon: "bi-people-fill",     label: "Empleados" },
+        { to: "/horas",       icon: "bi-clock-history",   label: "Reporte de Horas" },
+        { to: "/perfil",      icon: "bi-person-circle",   label: "Mi Perfil" },
+      ];
+    case "empleado":
+      return [
+        { to: "/mi-espacio",  icon: "bi-grid-fill",       label: "Mi Espacio" },
+        { to: "/proyectos",   icon: "bi-kanban-fill",     label: "Mis Proyectos" },
+        { to: "/mis-horas",   icon: "bi-clock-history",   label: "Mis Horas" },
+        { to: "/perfil",      icon: "bi-person-circle",   label: "Mi Perfil" },
+      ];
+    default:
+      return [{ to: "/perfil", icon: "bi-person-circle", label: "Mi Perfil" }];
+  }
+};
 
 const Sidebar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-
-  // Obtenemos los datos del usuario guardados
-  const user = JSON.parse(localStorage.getItem("user"));
+  const { user, logout } = useAuth();
   const rol = user?.rol || "empleado";
-  const nombre = user?.nombre || "Sistema de rentabilidad";
 
-  // Ajustamos el estilo activo para que sea más sutil como en el diseño
-  const isActive = (path) =>
-    location.pathname === path ? "bg-primary-subtle text-primary" : "text-dark";
+  const [empresaNombre, setEmpresaNombre] = useState("");
 
-  // Función de cerrar sesión
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    navigate("/login");
+  useEffect(() => {
+    if (!user?.id_empresa) return;
+    getEmpresaById(user.id_empresa)
+      .then((r) => { if (r?.success) setEmpresaNombre(r.data.nombre); })
+      .catch(() => {});
+  }, [user?.id_empresa]);
+
+  const navItems = getNavItems(rol);
+  const active = (path) => location.pathname === path;
+
+  const rolConfig = {
+    admin:    { label: "Administrador", color: "#FCA5A5", bg: "rgba(239,68,68,.25)" },
+    propietario: { label: "Propietario", color: "#A5B4FC", bg: "rgba(99,102,241,.25)" },
+    lider:    { label: "Líder",         color: "#FDE68A", bg: "rgba(245,158,11,.25)" },
+    empleado: { label: "Empleado",      color: "#6EE7B7", bg: "rgba(16,185,129,.25)" },
   };
+  const rc = rolConfig[rol] || rolConfig.empleado;
 
   return (
     <div
-      className="bg-white border-end d-flex flex-column"
-      style={{ width: "280px", height: "100vh", position: "sticky", top: 0 }}
+      className="d-flex flex-column"
+      style={{
+        width: 250,
+        minHeight: "100vh",
+        position: "sticky",
+        top: 0,
+        background: "linear-gradient(180deg,#0F0C29 0%,#302B63 50%,#24243e 100%)",
+        boxShadow: "4px 0 30px rgba(15,12,41,.5)",
+        zIndex: 200,
+        flexShrink: 0,
+      }}
     >
-      <div className="ps-4 pb-2 pt-3 mb-3 border-bottom">
-        <div className="d-flex align-items-center mb-1">
+      {/* Brand */}
+      <div className="p-4" style={{ borderBottom: "1px solid rgba(255,255,255,.07)" }}>
+        <div className="d-flex align-items-center gap-3">
           <div
-            className="bg-primary rounded-3 p-2 me-3 d-flex align-items-center justify-content-center"
-            style={{ width: "40px", height: "40px" }}
+            className="rounded-3 d-flex align-items-center justify-content-center flex-shrink-0"
+            style={{ width: 40, height: 40, background: "linear-gradient(135deg,#4F46E5,#06B6D4)" }}
           >
-            <i className="bi bi-building-fill text-white"></i>
+            <i className="bi bi-building-fill text-white" style={{ fontSize: 16 }}></i>
           </div>
-          <div className="d-flex flex-column mt-3">
-            <h5 className="fw-bold mb-0">{nombre}</h5>
-            <p className="text-muted small mt-2 text-capitalize">{rol}</p>
+          <div className="overflow-hidden">
+            <p className="fw-bold text-white mb-0 text-truncate" style={{ fontSize: 13, maxWidth: 155 }}>
+              {empresaNombre || (rol === "admin" ? "Panel Admin" : "Mi Empresa")}
+            </p>
+            <span
+              className="rounded-pill px-2 py-0"
+              style={{ fontSize: 10, fontWeight: 700, background: rc.bg, color: rc.color, letterSpacing: ".05em" }}
+            >
+              {rc.label}
+            </span>
           </div>
         </div>
       </div>
 
-      <nav className="nav flex-column px-3 flex-grow-1">
-
-        {/* Rentabilidad: Solo si NO es Admin */}
-        {rol !== "admin" && (
-          <Link
-            to="/rentabilidad"
-            className={`nav-link mb-2 rounded-3 p-2 ${isActive("/rentabilidad")}`}
-          >
-            <i className="bi bi-graph-up mx-2"></i> Rentabilidad
-          </Link>
-        )}
-
-        {/* Empresa: Los Admin van a la lista general, los Dueños a su configuración */}
-        <Link
-          to={rol === "admin" ? "/empresas" : "/empresa-config"}
-          className={`nav-link mb-2 rounded-3 p-2 ${isActive(
-            rol === "admin" ? "/empresas" : "/empresa-config"
-          )}`}
-        >
-          <i className="bi bi-building mx-2"></i> Empresa
-        </Link>
-
-        {/* Servicios: Solo para Propietario */}
-        {rol === "propietario" && (
-          <Link
-            to="/servicios"
-            className={`nav-link mb-2 rounded-3 p-2 ${isActive("/servicios")}`}
-          >
-            <i className="bi bi-briefcase mx-2"></i> Servicios
-          </Link>
-        )}
-
-        {/* Usuarios: Visible para Admin y Propietario */}
-        <Link
-          to="/usuarios"
-          className={`nav-link mb-2 rounded-3 p-2 ${isActive("/usuarios")}`}
-        >
-          <i className="bi bi-people mx-2"></i> Usuarios
-        </Link>
-
-        {/* Proyectos: Solo si NO es Admin */}
-        {rol !== "admin" && (
-          <Link
-            to="/proyectos"
-            className={`nav-link mb-2 rounded-3 p-2 ${isActive("/proyectos")}`}
-          >
-            <i className="bi bi-kanban mx-2"></i> Proyectos
-          </Link>
-        )}
-
+      {/* Nav */}
+      <nav className="flex-grow-1 py-3 px-2">
+        {navItems.map((item) => {
+          const isActive = active(item.to);
+          return (
+            <Link
+              key={item.to}
+              to={item.to}
+              className="d-flex align-items-center gap-3 px-3 py-2 mb-1 rounded-3 text-decoration-none"
+              style={{
+                fontSize: 13,
+                fontWeight: isActive ? 700 : 500,
+                color: isActive ? "#fff" : "rgba(199,210,254,.7)",
+                background: isActive
+                  ? "linear-gradient(135deg,rgba(99,102,241,.6),rgba(79,70,229,.4))"
+                  : "transparent",
+                transition: "all .2s cubic-bezier(.4,0,.2,1)",
+                boxShadow: isActive ? "0 4px 12px rgba(79,70,229,.3), inset 0 1px 0 rgba(255,255,255,.1)" : "none",
+                border: isActive ? "1px solid rgba(255,255,255,.08)" : "1px solid transparent",
+              }}
+              onMouseEnter={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = "rgba(255,255,255,.07)";
+                  e.currentTarget.style.color = "#fff";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isActive) {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "rgba(199,210,254,.7)";
+                }
+              }}
+            >
+              <i className={`bi ${item.icon}`} style={{ fontSize: 15, width: 18, textAlign: "center", flexShrink: 0 }}></i>
+              <span className="text-truncate">{item.label}</span>
+              {isActive && (
+                <span
+                  className="ms-auto rounded-circle flex-shrink-0"
+                  style={{ width: 6, height: 6, background: "#818CF8" }}
+                ></span>
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
-      <div className="p-4 border-top">
-        <button
-          className="btn btn-link text-danger text-decoration-none d-flex align-items-center p-0 w-100"
-          onClick={handleLogout}
+      {/* User card + logout */}
+      <div className="p-3" style={{ borderTop: "1px solid rgba(255,255,255,.07)" }}>
+        <div
+          className="d-flex align-items-center gap-2 rounded-3 p-2 mb-2"
+          style={{ background: "rgba(255,255,255,.05)", cursor: "pointer", transition: "background .2s" }}
+          onClick={() => navigate("/perfil")}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.1)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,.05)"; }}
         >
-          <i className="bi bi-box-arrow-left me-2 fs-5"></i>
-          <span className="fw-medium">Cerrar sesión</span>
+          <div
+            className="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+            style={{ width: 32, height: 32, background: "linear-gradient(135deg,#4F46E5,#06B6D4)", fontSize: 12, fontWeight: 700, color: "#fff" }}
+          >
+            {user?.nombre ? user.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase() : "?"}
+          </div>
+          <div className="overflow-hidden">
+            <p className="text-white fw-semibold mb-0 text-truncate" style={{ fontSize: 12, maxWidth: 140 }}>
+              {user?.nombre || "Usuario"}
+            </p>
+            <p className="mb-0 text-truncate" style={{ fontSize: 10, color: "rgba(199,210,254,.5)", maxWidth: 140 }}>
+              {user?.email}
+            </p>
+          </div>
+        </div>
+
+        <button
+          className="btn btn-sm w-100 d-flex align-items-center justify-content-center gap-2 rounded-3"
+          style={{ background: "rgba(239,68,68,.15)", color: "#FCA5A5", fontSize: 12, fontWeight: 600, border: "1px solid rgba(239,68,68,.2)", transition: "all .2s" }}
+          onClick={() => { logout(); navigate("/login"); }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(239,68,68,.3)"; e.currentTarget.style.color = "#fff"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(239,68,68,.15)"; e.currentTarget.style.color = "#FCA5A5"; }}
+        >
+          <i className="bi bi-box-arrow-left"></i>
+          Cerrar sesión
         </button>
       </div>
     </div>

@@ -1,323 +1,149 @@
-import React, { useEffect, useState } from "react";
-import Modal from "../../components/ui/Modal";
-import { createUsuario } from "../../services/usuarioService";
-import { getEmpresas } from "../../services/empresaService";
+import React, { useState, useEffect } from "react";
+import { createUser, updateUsuario } from "../../services/usuarioService";
+import api from "../../services/api";
 
-const UsuarioForm = ({ show, onClose, onSuccess }) => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  const rolUsuarioLogueado = user?.rol;
-
-  const [formData, setFormData] = useState({
-    nombre: "",
-    email: "",
+const UsuarioForm = ({ onCreated, onCancel, usuario }) => {
+  const isEdit = Boolean(usuario);
+  const [form, setForm] = useState({
+    nombre:   usuario?.nombre || "",
+    email:    usuario?.email  || "",
     password: "",
-    id_empresa: "",
-    rol: "",
-    monto: "",
-    tipo_pago: "",
+    rol:      usuario?.rol    || "lider",
   });
+  const [error, setError]     = useState("");
+  const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [empresas, setEmpresas] = useState([]);
-  const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [loadingEmpresas, setLoadingEmpresas] = useState(false);
-
-  // Reset cuando se abre modal
-  useEffect(() => {
-    if (show) {
-      setFormData({
-        nombre: "",
-        email: "",
-        password: "",
-        id_empresa: "",
-        rol: "",
-        monto: "",
-        tipo_pago: "",
-      });
-      setError("");
-    }
-  }, [show]);
-
-  // Cargar empresas solo si es admin
-  useEffect(() => {
-    const fetchEmpresas = async () => {
-      if (!show) return;
-      if (rolUsuarioLogueado !== "admin") return;
-
-      try {
-        setLoadingEmpresas(true);
-
-        const response = await getEmpresas();
-        if (response.success) {
-          setEmpresas(response.data);
-        }
-      } catch (err) {
-        console.error("Error al cargar empresas:", err);
-      } finally {
-        setLoadingEmpresas(false);
-      }
-    };
-
-    fetchEmpresas();
-  }, [show, rolUsuarioLogueado]);
-
-  const handleClose = () => {
-    setFormData({
-      nombre: "",
-      email: "",
-      password: "",
-      id_empresa: "",
-      rol: "",
-      monto: "",
-      tipo_pago: "",
-    });
-    setError("");
-    onClose();
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-
-      // Si cambia el rol y ya no es empleado, limpiar campos de pago
-      ...(name === "rol" && value !== "empleado"
-        ? { monto: "", tipo_pago: "" }
-        : {}),
-    }));
-  };
+  const handleChange = (e) => setForm((p) => ({ ...p, [e.target.name]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-
-    // Validaciones generales
-    if (
-      !formData.nombre.trim() ||
-      !formData.email.trim() ||
-      !formData.password.trim()
-    ) {
-      setError("Todos los campos son obligatorios.");
-      return;
-    }
-
-    // Admin debe elegir empresa
-    if (rolUsuarioLogueado === "admin" && !formData.id_empresa) {
-      setError("Debe seleccionar una empresa.");
-      return;
-    }
-
-    // Propietario debe elegir rol
-    if (rolUsuarioLogueado === "propietario" && !formData.rol) {
-      setError("Debe seleccionar un rol.");
-      return;
-    }
-
-    // Si es empleado, monto y tipo_pago son obligatorios
-    if (formData.rol === "empleado") {
-      if (!formData.monto || !formData.tipo_pago) {
-        setError("Debe ingresar monto y tipo de pago para empleados.");
-        return;
-      }
-    }
-
+    setLoading(true);
     try {
-      setSaving(true);
-
-      let payload = {
-        nombre: formData.nombre,
-        email: formData.email,
-        password: formData.password,
-      };
-
-      // Admin crea propietarios
-      if (rolUsuarioLogueado === "admin") {
-        payload.rol = "propietario";
-        payload.id_empresa = Number(formData.id_empresa);
-      }
-
-      // Propietario crea líder o empleado
-      if (rolUsuarioLogueado === "propietario") {
-        payload.rol = formData.rol;
-
-        if (formData.rol === "empleado") {
-          payload.monto = Number(formData.monto);
-          payload.tipo_pago = formData.tipo_pago;
-        }
-      }
-
-      const response = await createUsuario(payload);
-
-      if (!response.success) {
-        if (response.errors && response.errors.length > 0) {
-          setError(response.errors[0].msg);
-        } else {
-          setError("No se pudo crear el usuario.");
-        }
-        return;
-      }
-
-      onSuccess();
-      handleClose();
-    } catch (err) {
-      console.error("Error al crear usuario:", err);
-
-      if (err.response?.data?.errors) {
-        setError(err.response.data.errors[0].msg);
+      let response;
+      if (isEdit) {
+        const payload = { nombre: form.nombre, email: form.email };
+        if (form.password) payload.password = form.password;
+        if (form.rol) payload.rol = form.rol;
+        const res = await api.put(`/usuarios/${usuario.id_usuario}`, payload);
+        response = res.data;
       } else {
-        setError(err.response?.data?.message || "Error al crear usuario.");
+        response = await createUser(form);
       }
+
+      if (response?.success || response?.user) {
+        setSuccess(true);
+        setTimeout(() => { onCreated?.(); }, 700);
+      } else {
+        const msg = response?.errors?.[0]?.msg || response?.message || "Error al guardar el usuario.";
+        setError(msg);
+      }
+    } catch (err) {
+      const data = err.response?.data;
+      const msg = data?.errors?.[0]?.msg || data?.message || "Error al guardar el usuario.";
+      setError(msg);
     } finally {
-      setSaving(false);
+      setLoading(false);
     }
   };
 
   return (
-    <Modal
-      show={show}
-      title={
-        rolUsuarioLogueado === "admin"
-          ? "Crear Usuario Propietario"
-          : "Crear Usuario"
-      }
-      onClose={handleClose}
-      footer={
-        <>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handleClose}
-            disabled={saving}
-          >
-            Cancelar
+    <div className="card border-0 rounded-4 mb-4 animate-scaleIn overflow-hidden"
+      style={{ boxShadow: "var(--shadow-md)" }}>
+      <div style={{ height: 4, background: "linear-gradient(90deg, var(--primary), var(--accent))" }}></div>
+      <div className="p-4">
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <div>
+            <h5 className="fw-bold mb-0">{isEdit ? "Editar usuario" : "Nuevo usuario"}</h5>
+            <p className="text-muted small mb-0">
+              {isEdit ? "Modifica los datos del colaborador" : "Completa los datos del nuevo colaborador"}
+            </p>
+          </div>
+          <button type="button"
+            className="btn btn-sm btn-light rounded-circle p-1 lh-1 d-flex align-items-center justify-content-center"
+            style={{ width: 30, height: 30 }}
+            onClick={onCancel}>
+            <i className="bi bi-x-lg" style={{ fontSize: 12 }}></i>
           </button>
-
-          <button
-            type="submit"
-            form="usuarioForm"
-            className="btn btn-primary"
-            disabled={saving}
-          >
-            {saving ? "Guardando..." : "Crear Usuario"}
-          </button>
-        </>
-      }
-    >
-      {error && <div className="alert alert-danger small">{error}</div>}
-
-      <form id="usuarioForm" onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label className="form-label">Nombre</label>
-          <input
-            type="text"
-            name="nombre"
-            className="form-control"
-            value={formData.nombre}
-            onChange={handleChange}
-            disabled={saving}
-          />
         </div>
 
-        <div className="mb-3">
-          <label className="form-label">Email</label>
-          <input
-            type="email"
-            name="email"
-            className="form-control"
-            value={formData.email}
-            onChange={handleChange}
-            disabled={saving}
-          />
-        </div>
-
-        <div className="mb-3">
-          <label className="form-label">Contraseña</label>
-          <input
-            type="password"
-            name="password"
-            className="form-control"
-            value={formData.password}
-            onChange={handleChange}
-            disabled={saving}
-          />
-        </div>
-
-        {/* ADMIN: elegir empresa */}
-        {rolUsuarioLogueado === "admin" && (
-          <div className="mb-3">
-            <label className="form-label">Empresa</label>
-            <select
-              name="id_empresa"
-              className="form-select"
-              value={formData.id_empresa}
-              onChange={handleChange}
-              disabled={saving || loadingEmpresas}
-            >
-              <option value="">Seleccione una empresa</option>
-
-              {empresas.map((empresa) => (
-                <option key={empresa.id_empresa} value={empresa.id_empresa}>
-                  {empresa.empresa_nombre}
-                </option>
-              ))}
-            </select>
+        {error && (
+          <div className="alert alert-danger d-flex align-items-center py-2 small rounded-3 mb-3">
+            <i className="bi bi-exclamation-circle-fill me-2"></i>{error}
+          </div>
+        )}
+        {success && (
+          <div className="alert alert-success d-flex align-items-center py-2 small rounded-3 mb-3">
+            <i className="bi bi-check-circle-fill me-2"></i>
+            {isEdit ? "¡Usuario actualizado!" : "¡Usuario creado exitosamente!"}
           </div>
         )}
 
-        {/* PROPIETARIO: elegir rol */}
-        {rolUsuarioLogueado === "propietario" && (
-          <div className="mb-3">
-            <label className="form-label">Rol</label>
-            <select
-              name="rol"
-              className="form-select"
-              value={formData.rol}
-              onChange={handleChange}
-              disabled={saving}
-            >
-              <option value="">Seleccione un rol</option>
-              <option value="lider">Líder</option>
-              <option value="empleado">Empleado</option>
-            </select>
-          </div>
-        )}
-
-        {/* SOLO SI ES EMPLEADO */}
-        {formData.rol === "empleado" && (
-          <>
-            <div className="mb-3">
-              <label className="form-label">Monto</label>
-              <input
-                type="number"
-                name="monto"
-                className="form-control"
-                value={formData.monto}
-                onChange={handleChange}
-                disabled={saving}
-                placeholder="Ej: 1500"
-              />
+        <form onSubmit={handleSubmit}>
+          <div className="row g-3">
+            <div className="col-12 col-sm-6">
+              <label className="form-label fw-semibold small">Nombre completo</label>
+              <input type="text" name="nombre" value={form.nombre} onChange={handleChange}
+                className="form-control" placeholder="Ej: Juan Pérez" required />
             </div>
-
-            <div className="mb-3">
-              <label className="form-label">Tipo de pago</label>
-              <select
-                name="tipo_pago"
-                className="form-select"
-                value={formData.tipo_pago}
-                onChange={handleChange}
-                disabled={saving}
-              >
-                <option value="">Seleccione tipo de pago</option>
-                <option value="mensual">Mensual</option>
-                <option value="por_hora">Por hora</option>
+            <div className="col-12 col-sm-6">
+              <label className="form-label fw-semibold small">Rol</label>
+              <select name="rol" value={form.rol} onChange={handleChange} className="form-select" required>
+                <option value="lider">Líder de equipo</option>
+                <option value="empleado">Empleado</option>
               </select>
             </div>
-          </>
-        )}
-      </form>
-    </Modal>
+            <div className="col-12 col-sm-6">
+              <label className="form-label fw-semibold small">Correo electrónico</label>
+              <input type="email" name="email" value={form.email} onChange={handleChange}
+                className="form-control" placeholder="usuario@empresa.com" required />
+            </div>
+            <div className="col-12 col-sm-6">
+              <label className="form-label fw-semibold small">
+                Contraseña {isEdit && <span className="text-muted fw-normal">(vacío = sin cambios)</span>}
+              </label>
+              <div className="input-group">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  className="form-control"
+                  placeholder={isEdit ? "Nueva contraseña (opcional)" : "Ej: MiPass123!"}
+                  required={!isEdit}
+                  minLength={form.password ? 8 : undefined}
+                />
+                <button className="btn btn-outline-secondary" type="button" onClick={() => setShowPassword(!showPassword)}>
+                  <i className={`bi ${showPassword ? "bi-eye-slash" : "bi-eye"}`}></i>
+                </button>
+              </div>
+              {!isEdit && (
+                <div className="form-text" style={{ fontSize: 11, color: "var(--text-muted)" }}>
+                  Mayúscula, minúscula, número y carácter especial.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="d-flex gap-2 mt-4">
+            <button type="button" className="btn btn-light fw-semibold px-4" onClick={onCancel}>
+              Cancelar
+            </button>
+            <button type="submit" className="btn btn-primary flex-fill" disabled={loading || success}>
+              {loading
+                ? <><span className="spinner-border spinner-border-sm me-2"></span>{isEdit ? "Guardando..." : "Creando..."}</>
+                : success
+                  ? <><i className="bi bi-check-lg me-2"></i>{isEdit ? "Guardado" : "Creado"}</>
+                  : isEdit
+                    ? <><i className="bi bi-check-lg me-2"></i>Guardar cambios</>
+                    : <><i className="bi bi-person-plus-fill me-2"></i>Crear usuario</>}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 

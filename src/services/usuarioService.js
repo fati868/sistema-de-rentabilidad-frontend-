@@ -1,18 +1,26 @@
 import api from "./api";
 
-// Obtener todos los usuarios (solo para Admin)
 export const getUsuarios = async () => {
   const response = await api.get("/usuarios");
   return response.data;
 };
 
-export const createUsuario = async (formData) => {
-  const response = await api.post("/usuarios", formData);
+export const createUser = async (data) => {
+  const response = await api.post("/usuarios", data);
   return response.data;
 };
 
-// Eliminar un usuario
+export const updateUsuario = async (id, data) => {
+  const response = await api.put(`/usuarios/${id}`, data);
+  return response.data;
+};
+
 export const deleteUsuario = async (id) => {
-  const response = await api.delete(`/usuarios/${id}`);
+  const response = await api.put(`/usuarios/${id}`, { is_active: false });
+  return response.data;
+};
+
+export const hardDeleteUsuario = async (id) => {
+  const response = await api.delete(`/usuarios/${id}/permanente`);
   return response.data;
 };
