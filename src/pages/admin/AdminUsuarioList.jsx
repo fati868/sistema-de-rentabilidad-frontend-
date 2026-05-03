@@ -15,7 +15,7 @@ const AdminUsuarioList = () => {
   const fetchOwners = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get("/usuarios/propietarios");
+      const res = await api.get("/usuarios");
       if (res.data?.success) setOwners(res.data.data);
       else setError("No se pudo cargar la lista.");
     } catch {

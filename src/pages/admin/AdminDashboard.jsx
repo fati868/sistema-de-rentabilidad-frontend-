@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import { useAuth } from "../../context/AuthContext";
 import { getEmpresas } from "../../services/empresaService";
-import api from "../../services/api";
+import { getUsuarios } from "../../services/usuarioService";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -18,7 +18,7 @@ const AdminDashboard = () => {
     try {
       const [empRes, ownerRes] = await Promise.all([
         getEmpresas(),
-        api.get("/usuarios/propietarios").then((r) => r.data).catch(() => ({ data: [] })),
+        getUsuarios().catch(() => ({ data: [] })),
       ]);
       if (empRes?.success) setEmpresas(empRes.data);
       setOwners(ownerRes?.data || []);
