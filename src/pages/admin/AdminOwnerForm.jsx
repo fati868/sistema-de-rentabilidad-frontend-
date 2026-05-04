@@ -85,7 +85,7 @@ const AdminOwnerForm = ({ onSaved, onCancel, owner }) => {
               className="form-select" required={!isEdit}>
               <option value="">— Selecciona una empresa —</option>
               {empresas.map((e) => (
-                <option key={e.id_empresa} value={e.id_empresa}>{e.nombre}</option>
+                <option key={e.id_empresa} value={e.id_empresa}>{e.empresa_nombre}</option>
               ))}
             </select>
           </div>

@@ -93,7 +93,7 @@ const AdminDashboard = () => {
                   </div>
                 ) : (
                   empresas.slice(0, 5).map((e) => {
-                    const owner = owners.find((o) => o.id_empresa === e.id_empresa);
+                    const owner = e.propietario_nombre;
                     return (
                       <div key={e.id_empresa}
                         className="d-flex align-items-center justify-content-between p-2 rounded-3 mb-1"
@@ -107,9 +107,9 @@ const AdminDashboard = () => {
                             <i className="bi bi-building-fill" style={{ color: "#4F46E5", fontSize: 13 }}></i>
                           </div>
                           <div>
-                            <p className="fw-semibold mb-0" style={{ fontSize: 13 }}>{e.nombre}</p>
+                            <p className="fw-semibold mb-0" style={{ fontSize: 13 }}>{e.empresa_nombre}</p>
                             {owner
-                              ? <p className="text-muted mb-0" style={{ fontSize: 11 }}>{owner.nombre}</p>
+                              ? <p className="text-muted mb-0" style={{ fontSize: 11 }}>{owner}</p>
                               : <p className="mb-0" style={{ fontSize: 11, color: "#F59E0B" }}>Sin propietario</p>
                             }
                           </div>
