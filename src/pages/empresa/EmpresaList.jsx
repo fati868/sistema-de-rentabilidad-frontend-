@@ -274,12 +274,13 @@ const EmpresaList = () => {
                           <i className="bi bi-pencil-square me-1"></i>Editar
                         </button>
 
+                        {/*BOTÓN PARA BORRAR
                         <button
                           className="btn btn-sm btn-danger"
                           onClick={() => handleDelete(empresa.id_empresa)}
                         >
                           <i className="bi bi-trash3"></i>
-                        </button>
+                        </button>*/}
                       </div>
                     </div>
                   </div>

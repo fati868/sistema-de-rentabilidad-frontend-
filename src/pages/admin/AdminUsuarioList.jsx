@@ -38,23 +38,13 @@ const AdminUsuarioList = () => {
     setShowForm(true);
   };
 
-  const handleToggleActive = async (owner) => {
-    const action = owner.is_active ? "desactivar" : "activar";
-    if (!window.confirm(`¿${owner.is_active ? "Desactivar" : "Activar"} al propietario "${owner.nombre}"?`)) return;
-    try {
-      await api.put(`/usuarios/${owner.id_usuario}`, { is_active: !owner.is_active });
-      notifySuccess(`Propietario ${owner.is_active ? "desactivado" : "activado"} correctamente.`);
-      fetchOwners();
-    } catch (err) {
-      notifyError(err.response?.data?.message || `Error al ${action} el propietario.`);
-    }
-  };
+  // 🔁 AHORA ESTE MÉTODO REEMPLAZA AL DELETE (DESACTIVA)
+  const handleDelete = async (owner) => {
+    if (!window.confirm(`¿Eliminar al propietario "${owner.nombre}"?`)) return;
 
-  const handleHardDelete = async (owner) => {
-    if (!window.confirm(`¿ELIMINAR PERMANENTEMENTE al propietario "${owner.nombre}"? Esta acción es irreversible y borrará todos sus datos asociados.`)) return;
     try {
-      await api.delete(`/usuarios/${owner.id_usuario}/hard-delete`);
-      notifySuccess("Propietario eliminado permanentemente.");
+      await api.put(`/usuarios/${owner.id_usuario}`, { is_active: false });
+      notifySuccess("Propietario eliminado correctamente");
       fetchOwners();
     } catch (err) {
       notifyError(err.response?.data?.message || "Error al eliminar el propietario.");
@@ -78,8 +68,10 @@ const AdminUsuarioList = () => {
               {owners.length} propietario{owners.length !== 1 ? "s" : ""} registrados en el sistema
             </p>
           </div>
-          <button className="btn btn-primary d-flex align-items-center gap-2 px-4"
-            onClick={() => { setEditingOwner(null); setShowForm(true); }}>
+          <button
+            className="btn btn-primary d-flex align-items-center gap-2 px-4"
+            onClick={() => { setEditingOwner(null); setShowForm(true); }}
+          >
             <i className="bi bi-person-plus-fill"></i>
             Nuevo Propietario
           </button>
@@ -88,16 +80,18 @@ const AdminUsuarioList = () => {
         {/* Stats */}
         <div className="row g-3 mb-4 stagger">
           {[
-            { label: "Total propietarios", value: owners.length, icon: "bi-people-fill",      color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
-            { label: "Activos",            value: owners.filter(o => o.is_active).length,  icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
-            { label: "Inactivos",          value: owners.filter(o => !o.is_active).length, icon: "bi-x-circle-fill",     color: "var(--danger)",  bg: "rgba(239,68,68,.1)" },
+            { label: "Total propietarios", value: owners.length, icon: "bi-people-fill", color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
+            { label: "Activos", value: owners.filter(o => o.is_active).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
+            { label: "Inactivos", value: owners.filter(o => !o.is_active).length, icon: "bi-x-circle-fill", color: "var(--danger)", bg: "rgba(239,68,68,.1)" },
           ].map((s, i) => (
             <div className="col-12 col-sm-4" key={i}>
               <div className="stat-card card-3d animate-fadeInUp">
                 <div className="stat-card__glow" style={{ background: s.color }}></div>
                 <div className="d-flex align-items-center gap-3">
-                  <div className="rounded-3 d-flex align-items-center justify-content-center"
-                    style={{ width: 44, height: 44, background: s.bg }}>
+                  <div
+                    className="rounded-3 d-flex align-items-center justify-content-center"
+                    style={{ width: 44, height: 44, background: s.bg }}
+                  >
                     <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 20 }}></i>
                   </div>
                   <div>
@@ -187,17 +181,11 @@ const AdminUsuarioList = () => {
                           >
                             <i className="bi bi-pencil-square"></i>
                           </button>
-                          <button
-                            className={`btn btn-sm ${o.is_active ? 'btn-warning' : 'btn-info'}`}
-                            title={o.is_active ? "Desactivar propietario" : "Activar propietario"}
-                            onClick={() => handleToggleActive(o)}
-                          >
-                            <i className={`bi ${o.is_active ? 'bi-person-x-fill' : 'bi-person-check-fill'}`}></i>
-                          </button>
+
                           <button
                             className="btn btn-sm btn-danger"
-                            title="Eliminar permanentemente"
-                            onClick={() => handleHardDelete(o)}
+                            title="Eliminar propietario"
+                            onClick={() => handleDelete(o)}
                           >
                             <i className="bi bi-trash-fill"></i>
                           </button>
