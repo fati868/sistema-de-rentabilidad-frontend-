@@ -35,9 +35,9 @@ const ConfirmModal = ({ title, message, confirmLabel, danger, onConfirm, onCance
 
 /* ── Panel expandible de proyecto ────────────── */
 const ProyectoDetailPanel = ({ proyecto }) => {
-  const [resumen,   setResumen]   = useState({ horas: [], lideres: [] });
+  const [resumen, setResumen] = useState({ horas: [], lideres: [] });
   const [empleados, setEmpleados] = useState([]);
-  const [loading,   setLoading]   = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
@@ -106,20 +106,20 @@ const ProyectoDetailPanel = ({ proyecto }) => {
                   {/* Múltiples líderes */}
                   {resumen.lideres?.length > 0
                     ? resumen.lideres.map((l) => (
-                        <div key={l.id_lider} className="d-flex align-items-center gap-2 mb-1 p-2 rounded-3" style={{ background: "rgba(245,158,11,.08)" }}>
-                          <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 11 }}></i>
-                          <span className="fw-semibold">{l.nombre}</span>
-                          <span className="badge badge-role badge-lider ms-auto" style={{ fontSize: 9 }}>Líder</span>
-                        </div>
-                      ))
+                      <div key={l.id_lider} className="d-flex align-items-center gap-2 mb-1 p-2 rounded-3" style={{ background: "rgba(245,158,11,.08)" }}>
+                        <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 11 }}></i>
+                        <span className="fw-semibold">{l.nombre}</span>
+                        <span className="badge badge-role badge-lider ms-auto" style={{ fontSize: 9 }}>Líder</span>
+                      </div>
+                    ))
                     : proyecto.lider_nombre
                       ? (
-                          <div className="d-flex align-items-center gap-2 mb-2 p-2 rounded-3" style={{ background: "rgba(245,158,11,.08)" }}>
-                            <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 12 }}></i>
-                            <span className="fw-semibold">{proyecto.lider_nombre}</span>
-                            <span className="badge badge-role badge-lider ms-auto" style={{ fontSize: 9 }}>Líder</span>
-                          </div>
-                        )
+                        <div className="d-flex align-items-center gap-2 mb-2 p-2 rounded-3" style={{ background: "rgba(245,158,11,.08)" }}>
+                          <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 12 }}></i>
+                          <span className="fw-semibold">{proyecto.lider_nombre}</span>
+                          <span className="badge badge-role badge-lider ms-auto" style={{ fontSize: 9 }}>Líder</span>
+                        </div>
+                      )
                       : null
                   }
                   {empleados.length === 0 && !proyecto.lider_nombre && !(resumen.lideres?.length > 0) && (
@@ -181,13 +181,13 @@ const ProyectoDetailPanel = ({ proyecto }) => {
 /* ── Vista propietario ───────────────────────── */
 const PropietarioView = () => {
   const [proyectos, setProyectos] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState("");
-  const [showForm, setShowForm]   = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
-  const [search, setSearch]       = useState("");
-  const [expanded, setExpanded]   = useState(null);  // id_proyecto expandido
-  const [confirm, setConfirm]     = useState(null);   // { type, proyecto }
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState(null);  // id_proyecto expandido
+  const [confirm, setConfirm] = useState(null);   // { type, proyecto }
 
   const fetch = useCallback(async () => {
     try {
@@ -205,18 +205,33 @@ const PropietarioView = () => {
   useEffect(() => { fetch(); }, [fetch]);
 
   const handleSaved = () => { setShowForm(false); setEditingId(null); fetch(); };
-  const handleEdit  = (id) => { setEditingId(id); setShowForm(true); };
+  const handleEdit = (id) => { setEditingId(id); setShowForm(true); };
 
   const handleConfirm = async () => {
     if (!confirm) return;
     try {
-      if (confirm.type === "delete")     await eliminarProyecto(confirm.proyecto.id_proyecto);
-      else if (confirm.type === "deactivate") await desactivarProyecto(confirm.proyecto.id_proyecto);
-      else if (confirm.type === "activate")   await activarProyecto(confirm.proyecto.id_proyecto);
-      fetch();
+      setLoading(true);
+      let res;
+
+      // Lógica de "Eliminación Silenciosa" para la HU 22
+      if (confirm.type === "delete") {
+        // El usuario cree que elimina, pero nosotros mantenemos la trazabilidad
+        res = await desactivarProyecto(confirm.proyecto.id_proyecto);
+      } else if (confirm.type === "activate") {
+        res = await activarProyecto(confirm.proyecto.id_proyecto);
+      }
+
+      if (res?.success) {
+        // Refresco de lista tras acción (Criterio HU 22)
+        await fetch();
+        setConfirm(null);
+      } else {
+        setError(res?.message || "Error al procesar la solicitud.");
+      }
     } catch (err) {
-      alert(err.response?.data?.message || "Error al procesar la acción.");
+      setError("Error de conexión con el servidor.");
     } finally {
+      setLoading(false);
       setConfirm(null);
     }
   };
@@ -247,9 +262,9 @@ const PropietarioView = () => {
         {/* Stats */}
         <div className="row g-3 mb-4 stagger">
           {[
-            { label: "Total proyectos", value: proyectos.length,                          icon: "bi-kanban-fill",      color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
-            { label: "Activos",         value: proyectos.filter(p => p.is_active).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
-            { label: "Inactivos",       value: proyectos.filter(p => !p.is_active).length, icon: "bi-x-circle-fill",   color: "var(--danger)",  bg: "rgba(239,68,68,.1)" },
+            { label: "Total proyectos", value: proyectos.length, icon: "bi-kanban-fill", color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
+            { label: "Activos", value: proyectos.filter(p => p.is_active).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
+            { label: "Inactivos", value: proyectos.filter(p => !p.is_active).length, icon: "bi-x-circle-fill", color: "var(--danger)", bg: "rgba(239,68,68,.1)" },
           ].map((s, i) => (
             <div className="col-6 col-sm-4" key={i}>
               <div className="stat-card card-3d animate-fadeInUp">
@@ -348,10 +363,10 @@ const PropietarioView = () => {
                         <td className="text-muted small">
                           {p.lider_nombre
                             ? p.lider_nombre.split(", ").map((n, i) => (
-                                <span key={i} className="d-flex align-items-center gap-1 mb-1" style={{ fontSize: 11 }}>
-                                  <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 9 }}></i>{n}
-                                </span>
-                              ))
+                              <span key={i} className="d-flex align-items-center gap-1 mb-1" style={{ fontSize: 11 }}>
+                                <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 9 }}></i>{n}
+                              </span>
+                            ))
                             : "—"}
                         </td>
                         <td className="text-muted small">
@@ -365,25 +380,27 @@ const PropietarioView = () => {
                         </td>
                         <td className="text-end" onClick={(e) => e.stopPropagation()}>
                           <div className="d-flex gap-1 justify-content-end">
-                            <button className="btn btn-sm btn-success" title="Editar"
-                              onClick={() => handleEdit(p.id_proyecto)}>
-                              <i className="bi bi-pencil-square"></i>
-                            </button>
-                            {p.is_active ? (
-                              <button className="btn btn-sm btn-warning" title="Desactivar"
-                                onClick={() => setConfirm({ type: "deactivate", proyecto: p })}>
-                                <i className="bi bi-pause-circle-fill"></i>
-                              </button>
-                            ) : (
-                              <button className="btn btn-sm btn-primary" title="Activar"
-                                onClick={() => setConfirm({ type: "activate", proyecto: p })}>
-                                <i className="bi bi-play-circle-fill"></i>
+                            {/* Botón Editar: Solo visible si el proyecto está activo */}
+                            {p.is_active && (
+                              <button className="btn btn-sm btn-success shadow-sm" title="Editar"
+                                onClick={() => handleEdit(p.id_proyecto)}>
+                                <i className="bi bi-pencil-square"></i>
                               </button>
                             )}
-                            <button className="btn btn-sm btn-danger" title="Eliminar permanentemente"
-                              onClick={() => setConfirm({ type: "delete", proyecto: p })}>
-                              <i className="bi bi-trash-fill"></i>
-                            </button>
+
+                            {/* El ÚNICO botón de eliminación: Silenciosamente solo desactiva */}
+                            {p.is_active ? (
+                              <button className="btn btn-sm btn-danger shadow-sm" title="Eliminar"
+                                onClick={() => setConfirm({ type: "delete", proyecto: p })}>
+                                <i className="bi bi-trash-fill"></i>
+                              </button>
+                            ) : (
+                              /* Botón de restauración: Solo visible para proyectos "eliminados" (inactivos) */
+                              <button className="btn btn-sm btn-primary shadow-sm" title="Restaurar"
+                                onClick={() => setConfirm({ type: "activate", proyecto: p })}>
+                                <i className="bi bi-arrow-counterclockwise"></i>
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -411,23 +428,13 @@ const PropietarioView = () => {
       {confirm && (
         <ConfirmModal
           danger={confirm.type === "delete"}
-          title={
-            confirm.type === "delete"     ? "Eliminar proyecto" :
-            confirm.type === "deactivate" ? "Desactivar proyecto" :
-                                            "Activar proyecto"
-          }
+          title={confirm.type === "delete" ? "Eliminar proyecto" : "Restaurar proyecto"}
           message={
             confirm.type === "delete"
-              ? `¿Eliminar permanentemente "${confirm.proyecto.nombre}"? Esta acción no se puede deshacer.`
-              : confirm.type === "deactivate"
-                ? `¿Desactivar el proyecto "${confirm.proyecto.nombre}"?`
-                : `¿Activar el proyecto "${confirm.proyecto.nombre}"?`
+              ? `¿Estás seguro de que deseas eliminar el proyecto "${confirm.proyecto.nombre}"? Esta acción no se puede deshacer.`
+              : `¿Deseas restaurar el proyecto "${confirm.proyecto.nombre}" para volver a operar con él?`
           }
-          confirmLabel={
-            confirm.type === "delete"     ? <><i className="bi bi-trash-fill me-2"></i>Eliminar</> :
-            confirm.type === "deactivate" ? <><i className="bi bi-pause-circle-fill me-2"></i>Desactivar</> :
-                                            <><i className="bi bi-play-circle-fill me-2"></i>Activar</>
-          }
+          confirmLabel={confirm.type === "delete" ? "Sí, eliminar" : "Sí, restaurar"}
           onConfirm={handleConfirm}
           onCancel={() => setConfirm(null)}
         />
@@ -439,10 +446,10 @@ const PropietarioView = () => {
 /* ── Vista lider ─────────────────────────────── */
 const LiderView = () => {
   const [proyectos, setProyectos] = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState("");
-  const [expanded, setExpanded]   = useState(null);
-  const [search, setSearch]       = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [expanded, setExpanded] = useState(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     getMisProyectos()
@@ -473,9 +480,9 @@ const LiderView = () => {
         {/* Stats */}
         <div className="row g-3 mb-4 stagger">
           {[
-            { label: "Total proyectos",  value: proyectos.length,                          icon: "bi-kanban-fill",       color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
-            { label: "Activos",          value: proyectos.filter(p => p.is_active).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
-            { label: "Inactivos",        value: proyectos.filter(p => !p.is_active).length, icon: "bi-x-circle-fill",    color: "var(--danger)",  bg: "rgba(239,68,68,.1)" },
+            { label: "Total proyectos", value: proyectos.length, icon: "bi-kanban-fill", color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
+            { label: "Activos", value: proyectos.filter(p => p.is_active).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
+            { label: "Inactivos", value: proyectos.filter(p => !p.is_active).length, icon: "bi-x-circle-fill", color: "var(--danger)", bg: "rgba(239,68,68,.1)" },
           ].map((s, i) => (
             <div className="col-12 col-sm-4" key={i}>
               <div className="stat-card card-3d animate-fadeInUp">
@@ -594,9 +601,9 @@ const LiderView = () => {
 
 /* ── Vista empleado ──────────────────────────── */
 const EmpleadoView = () => {
-  const [proyectos, setProyectos]         = useState([]);
-  const [loading, setLoading]             = useState(true);
-  const [error, setError]                 = useState("");
+  const [proyectos, setProyectos] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [horasProyecto, setHorasProyecto] = useState(null);
 
   useEffect(() => {
@@ -723,7 +730,7 @@ const ProyectoList = () => {
   const { user } = useAuth();
   const rol = user?.rol;
   if (rol === "propietario") return <PropietarioView />;
-  if (rol === "lider")       return <LiderView />;
+  if (rol === "lider") return <LiderView />;
   return <EmpleadoView />;
 };
 
