@@ -15,6 +15,7 @@ import EmpresaConfig    from "../pages/empresa/EmpresaConfig";
 import UsuarioList      from "../pages/usuarios/UsuarioList";
 import ServicioList     from "../pages/servicios/ServicioList";
 import FasesLists       from "../pages/fases/FasesLists";
+import NotasLists       from "../pages/notas/NotasLists";
 
 // Horas
 import HorasList        from "../pages/horas/HorasList";
@@ -121,6 +122,11 @@ export default function AppRouter() {
       <Route path="/proyectos/:proyectoId/fases" element={
         <RequireAuth>
           <RequireRole roles={["propietario", "lider"]}><FasesLists /></RequireRole>
+        </RequireAuth>
+      } />
+      <Route path="/proyectos/:proyectoId/notas" element={
+        <RequireAuth>
+          <RequireRole roles={["propietario", "lider"]}><NotasLists /></RequireRole>
         </RequireAuth>
       } />
       <Route path="/perfil" element={

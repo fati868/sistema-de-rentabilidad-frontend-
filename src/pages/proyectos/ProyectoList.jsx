@@ -35,7 +35,7 @@ const ConfirmModal = ({ title, message, confirmLabel, danger, onConfirm, onCance
 );
 
 /* ── Panel expandible de proyecto ────────────── */
-const ProyectoDetailPanel = ({ proyecto }) => {
+const ProyectoDetailPanel = ({ proyecto, colSpan = 7 }) => {
   const [resumen, setResumen] = useState({ horas: [], lideres: [] });
   const [empleados, setEmpleados] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -58,7 +58,7 @@ const ProyectoDetailPanel = ({ proyecto }) => {
 
   return (
     <tr>
-      <td colSpan="7" style={{ padding: 0 }}>
+      <td colSpan={colSpan} style={{ padding: 0 }}>
         <div className="animate-fadeInUp" style={{ background: "linear-gradient(135deg,rgba(79,70,229,.03),rgba(6,182,212,.02))", borderTop: "2px solid rgba(79,70,229,.12)", padding: "1.25rem 1.5rem" }}>
           <div className="row g-3">
             {/* Detalles */}
@@ -393,6 +393,16 @@ const PropietarioView = () => {
                             )}
 
                             {p.is_active && (
+                              <Link
+                                className="btn btn-sm btn-info shadow-sm text-white"
+                                title="Notas"
+                                to={`/proyectos/${p.id_proyecto}/notas`}
+                              >
+                                <i className="bi bi-journal-text"></i>
+                              </Link>
+                            )}
+
+                            {p.is_active && (
                               <button className="btn btn-sm btn-success shadow-sm" title="Editar"
                                 onClick={() => handleEdit(p.id_proyecto)}>
                                 <i className="bi bi-pencil-square"></i>
@@ -539,12 +549,13 @@ const LiderView = () => {
                   <th>Servicio</th>
                   <th>Fechas</th>
                   <th>Estado</th>
+                  <th className="text-end">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <tr key={i}>{Array.from({ length: 5 }).map((_, j) => (
+                    <tr key={i}>{Array.from({ length: 6 }).map((_, j) => (
                       <td key={j}><div className="skeleton rounded" style={{ height: 20, width: "80%" }}></div></td>
                     ))}</tr>
                   ))
@@ -586,13 +597,24 @@ const LiderView = () => {
                             {p.is_active ? "Activo" : "Inactivo"}
                           </span>
                         </td>
+                        <td className="text-end" onClick={(e) => e.stopPropagation()}>
+                          {p.is_active && (
+                            <Link
+                              className="btn btn-sm btn-info shadow-sm text-white"
+                              title="Notas"
+                              to={`/proyectos/${p.id_proyecto}/notas`}
+                            >
+                              <i className="bi bi-journal-text"></i>
+                            </Link>
+                          )}
+                        </td>
                       </tr>,
-                      isExpanded && <ProyectoDetailPanel key={`detail-${p.id_proyecto}`} proyecto={p} />,
+                      isExpanded && <ProyectoDetailPanel key={`detail-${p.id_proyecto}`} proyecto={p} colSpan={6} />,
                     ].filter(Boolean);
                   })
                 ) : (
                   <tr>
-                    <td colSpan="5">
+                    <td colSpan="6">
                       <div className="empty-state">
                         <i className="bi bi-kanban"></i>
                         <h6>Sin proyectos asignados</h6>
