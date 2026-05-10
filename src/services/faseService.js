@@ -18,6 +18,12 @@ export const createFase = async (proyectoId, data) => {
 };
 
 export const updateFase = async (id, data) => {
-  const response = await api.put(`/fases/${id}`, data);
-  return response.data;
+  try {
+    const response = await api.put(`/fases/${id}`, data);
+    return response.data;
+  } catch (error) {
+    // Capturamos el mensaje específico del backend para el Toast
+    throw error.response?.data?.message || "Error al actualizar la fase";
+  }
 };
+
