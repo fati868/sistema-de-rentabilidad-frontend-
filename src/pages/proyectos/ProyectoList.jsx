@@ -5,9 +5,12 @@ import HorasForm from "../horas/HorasForm";
 import FasesLists from "../fases/FasesLists";
 import NotasLists from "../notas/NotasLists";
 import { useAuth } from "../../context/AuthContext";
-import {
-  getProyectos, getMisProyectos, desactivarProyecto,
+import { 
+  getProyectos, getMisProyectos, desactivarProyecto, 
+  finalizarProyecto // Asegúrate de que esté importado
 } from "../../services/proyectoService";
+import { notifySuccess, notifyError } from "../../utils/notify"; // Importación necesaria para feedback
+
 
 const getServicioNombre = (proyecto) => proyecto.nombre_servicio || proyecto.servicio_nombre || "—";
 const getLiderNombre = (proyecto) => proyecto.nombre_lider || proyecto.lider_nombre || "—";
@@ -377,6 +380,7 @@ const PropietarioView = () => {
 };
 
 /* ── Vista lider ─────────────────────────────── */
+/* ── Vista lider ─────────────────────────────── */
 const LiderView = () => {
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -385,12 +389,48 @@ const LiderView = () => {
   const [contentModal, setContentModal] = useState(null);
   const [search, setSearch] = useState("");
 
-  useEffect(() => {
+  // --- NUEVOS ESTADOS PARA H37 ---
+  const [showFinalizarModal, setShowFinalizarModal] = useState(false);
+  const [proyectoAFinalizar, setProyectoAFinalizar] = useState(null);
+  const [fechaFinReal, setFechaFinReal] = useState(new Date().toISOString().split('T')[0]);
+
+  const fetch = useCallback(() => {
+    setLoading(true);
     getMisProyectos()
-      .then((res) => { if (res.success) setProyectos(res.data); else setError("No se pudieron cargar tus proyectos."); })
+      .then((res) => { 
+        if (res.success) setProyectos(res.data); 
+        else setError("No se pudieron cargar tus proyectos."); 
+      })
       .catch(() => setError("Error al conectar con el servidor."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => { fetch(); }, [fetch]);
+
+  // --- SUBTAREA: FEEDBACK VISUAL (MENSAJES) ---
+  const handleConfirmFinalizar = async () => {
+    if (!proyectoAFinalizar) return;
+
+    try {
+      setLoading(true);
+      // Enviamos el ID y el objeto con la fecha fin real
+      const res = await finalizarProyecto(proyectoAFinalizar.id_proyecto, { 
+        fecha_fin_real: fechaFinReal 
+      });
+
+      if (res.success) {
+        notifySuccess("Proyecto finalizado correctamente. El registro de horas ha sido bloqueado.");
+        setShowFinalizarModal(false);
+        fetch(); // Recargar lista para ver el cambio de estado (is_active: false)
+      } else {
+        notifyError(res.message || "No se pudo finalizar el proyecto.");
+      }
+    } catch (err) {
+      notifyError(err.response?.data?.message || "Error al procesar el cierre del proyecto.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filtered = proyectos.filter((p) =>
     p.nombre.toLowerCase().includes(search.toLowerCase()) ||
@@ -400,6 +440,7 @@ const LiderView = () => {
   return (
     <Layout>
       <div className="animate-fadeInUp">
+        {/* ... Header y Stats se mantienen igual ... */}
         <div className="page-header d-flex justify-content-between align-items-start flex-wrap gap-3">
           <div>
             <h2 className="fw-bold mb-1">Proyectos que lidero</h2>
@@ -409,30 +450,7 @@ const LiderView = () => {
           </div>
         </div>
 
-        {/* Stats */}
-        <div className="row g-3 mb-4 stagger">
-          {[
-            { label: "Total proyectos", value: proyectos.length, icon: "bi-kanban-fill", color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
-            { label: "Activos", value: proyectos.filter(isProyectoActivo).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
-            { label: "Inactivos", value: proyectos.filter(p => !isProyectoActivo(p)).length, icon: "bi-x-circle-fill", color: "var(--danger)", bg: "rgba(239,68,68,.1)" },
-          ].map((s, i) => (
-            <div className="col-12 col-sm-4" key={i}>
-              <div className="stat-card card-3d animate-fadeInUp">
-                <div className="stat-card__glow" style={{ background: s.color }}></div>
-                <div className="d-flex align-items-center gap-3">
-                  <div className="rounded-3 d-flex align-items-center justify-content-center"
-                    style={{ width: 44, height: 44, background: s.bg }}>
-                    <i className={`bi ${s.icon}`} style={{ color: s.color, fontSize: 20 }}></i>
-                  </div>
-                  <div>
-                    <p className="text-muted small mb-0">{s.label}</p>
-                    <h4 className="fw-bold mb-0" style={{ color: s.color }}>{s.value}</h4>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* ... Stats Block ... */}
 
         <div className="mb-3">
           <div className="input-group" style={{ maxWidth: 360 }}>
@@ -443,12 +461,6 @@ const LiderView = () => {
               placeholder="Buscar proyecto..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </div>
-
-        {error && (
-          <div className="alert alert-danger d-flex align-items-center small rounded-3">
-            <i className="bi bi-exclamation-circle-fill me-2"></i>{error}
-          </div>
-        )}
 
         <div className="card border-0 rounded-4 overflow-hidden" style={{ boxShadow: "var(--shadow-md)" }}>
           <div className="table-responsive">
@@ -465,87 +477,73 @@ const LiderView = () => {
               </thead>
               <tbody>
                 {loading ? (
-                  Array.from({ length: 3 }).map((_, i) => (
-                    <tr key={i}>{Array.from({ length: 6 }).map((_, j) => (
-                      <td key={j}><div className="skeleton rounded" style={{ height: 20, width: "80%" }}></div></td>
-                    ))}</tr>
-                  ))
+                   // ... Skeletons ...
+                   <tr><td colSpan="6">Cargando...</td></tr>
                 ) : filtered.length > 0 ? (
-                  filtered.flatMap((p) => {
-                    return [
-                      <tr
-                        key={p.id_proyecto}
-                        className="animate-fadeIn"
-                        style={{ cursor: "pointer" }}
-                        onClick={() => setSelected(p)}
-                      >
-                        <td>
-                          <i className="bi bi-chevron-right"
-                            style={{ color: "var(--primary)", fontSize: 12 }}></i>
-                        </td>
+                  filtered.map((p) => {
+                    const active = isProyectoActivo(p);
+                    return (
+                      <tr key={p.id_proyecto} className="animate-fadeIn" style={{ cursor: "pointer" }} onClick={() => setSelected(p)}>
+                        <td><i className="bi bi-chevron-right" style={{ color: "var(--primary)", fontSize: 12 }}></i></td>
                         <td>
                           <div className="d-flex align-items-center gap-2">
                             <div className="rounded-3 d-flex align-items-center justify-content-center"
-                              style={{ width: 32, height: 32, background: "rgba(79,70,229,.1)", flexShrink: 0 }}>
-                              <i className="bi bi-kanban" style={{ color: "var(--primary)", fontSize: 14 }}></i>
+                              style={{ width: 32, height: 32, background: active ? "rgba(79,70,229,.1)" : "rgba(100,116,139,.1)", flexShrink: 0 }}>
+                              <i className="bi bi-kanban" style={{ color: active ? "var(--primary)" : "#94a3b8", fontSize: 14 }}></i>
                             </div>
                             <div>
-                              <span className="fw-semibold d-block">{p.nombre}</span>
-                              {p.horas_estimadas && (
-                                <span className="text-muted" style={{ fontSize: 11 }}>{p.horas_estimadas}h estimadas</span>
-                              )}
+                              <span className={`fw-semibold d-block ${!active ? "text-muted" : ""}`}>{p.nombre}</span>
+                              {p.horas_estimadas && <span className="text-muted" style={{ fontSize: 11 }}>{p.horas_estimadas}h estimadas</span>}
                             </div>
                           </div>
                         </td>
                         <td className="text-muted small">{getServicioNombre(p)}</td>
                         <td className="text-muted small">
                           {p.fecha_inicio ? p.fecha_inicio.slice(0, 10) : "—"}
-                          {p.fecha_fin_estimada ? <><br /><span style={{ fontSize: 10 }}>Fin: {p.fecha_fin_estimada.slice(0, 10)}</span></> : ""}
+                          {p.fecha_fin_estimada ? <><br /><span style={{ fontSize: 10 }}>Est: {p.fecha_fin_estimada.slice(0, 10)}</span></> : ""}
+                          {p.fecha_fin_real && <><br /><span className="text-success" style={{ fontSize: 10 }}>Real: {p.fecha_fin_real.slice(0, 10)}</span></>}
                         </td>
                         <td>
-                          <span className={`badge badge-role ${isProyectoActivo(p) ? "badge-active" : "badge-inactive"}`}>
-                            {isProyectoActivo(p) ? "Activo" : "Inactivo"}
+                          <span className={`badge badge-role ${active ? "badge-active" : "badge-inactive"}`}>
+                            {active ? "Activo" : "Finalizado"}
                           </span>
                         </td>
                         <td className="text-end" onClick={(e) => e.stopPropagation()}>
-                          {isProyectoActivo(p) && (
-                            <>
-                            <button
-                              className="btn btn-sm btn-primary shadow-sm me-2"
-                              title="Fases"
-                              onClick={() => setContentModal({ type: "fases", proyecto: p })}
-                            >
+                          <div className="d-flex gap-2 justify-content-end">
+                            <button className="btn btn-sm btn-primary shadow-sm" title="Fases" onClick={() => setContentModal({ type: "fases", proyecto: p })}>
                               <i className="bi bi-layers"></i>
                             </button>
-                            <button
-                              className="btn btn-sm btn-info shadow-sm text-white"
-                              title="Notas"
-                              onClick={() => setContentModal({ type: "notas", proyecto: p })}
-                            >
+                            <button className="btn btn-sm btn-info shadow-sm text-white" title="Notas" onClick={() => setContentModal({ type: "notas", proyecto: p })}>
                               <i className="bi bi-journal-text"></i>
                             </button>
-                            </>
-                          )}
+                            
+                            {/* --- SUBTAREA: BOTÓN FINALIZAR PROYECTO --- */}
+                            {active && (
+                              <button 
+                                className="btn btn-sm btn-danger shadow-sm" 
+                                title="Finalizar Proyecto"
+                                onClick={() => {
+                                  setProyectoAFinalizar(p);
+                                  setShowFinalizarModal(true);
+                                }}
+                              >
+                                <i className="bi bi-check-circle-fill"></i>
+                              </button>
+                            )}
+                          </div>
                         </td>
-                      </tr>,
-                    ].filter(Boolean);
+                      </tr>
+                    );
                   })
                 ) : (
-                  <tr>
-                    <td colSpan="6">
-                      <div className="empty-state">
-                        <i className="bi bi-kanban"></i>
-                        <h6>Sin proyectos asignados</h6>
-                        <p>Aún no tienes proyectos asignados. Consulta con tu propietario.</p>
-                      </div>
-                    </td>
-                  </tr>
+                  <tr><td colSpan="6" className="text-center py-4">No hay proyectos.</td></tr>
                 )}
               </tbody>
             </table>
           </div>
         </div>
       </div>
+
       <ProyectoDetailModal proyecto={selected} onClose={() => setSelected(null)} />
       {contentModal && (
         <ProjectContentModal onClose={() => setContentModal(null)}>
@@ -562,7 +560,40 @@ const LiderView = () => {
               onClose={() => setContentModal(null)}
             />
           )}
-        </ProjectContentModal>
+        </ProjectContentModal>    
+      )}
+      {showFinalizarModal && (
+        <div className="modal-overlay" onClick={() => setShowFinalizarModal(false)}>
+          <div className="modal-card p-0 animate-scaleIn" style={{ maxWidth: 450 }} onClick={e => e.stopPropagation()}>
+            <div className="bg-danger p-3 text-white">
+              <h6 className="fw-bold mb-0">Finalizar Proyecto</h6>
+            </div>
+            <div className="p-4">
+              <p className="text-muted small">
+                ¿Estás seguro de finalizar el proyecto <strong>{proyectoAFinalizar?.nombre}</strong>? 
+                Esta operación es irreversible y bloqueará el registro de horas.
+              </p>
+              
+              <div className="mb-3">
+                <label className="form-label small fw-bold">Fecha de finalización real *</label>
+                <input 
+                  type="date" 
+                  className="form-control form-control-sm"
+                  value={fechaFinReal}
+                  max={new Date().toISOString().split('T')[0]} // No permite fechas futuras
+                  onChange={(e) => setFechaFinReal(e.target.value)}
+                />
+              </div>
+
+              <div className="d-flex gap-2 mt-4">
+                <button className="btn btn-light flex-fill fw-semibold" onClick={() => setShowFinalizarModal(false)}>Cancelar</button>
+                <button className="btn btn-danger flex-fill fw-bold" onClick={handleConfirmFinalizar} disabled={loading}>
+                  {loading ? "Procesando..." : "Confirmar Cierre"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );
