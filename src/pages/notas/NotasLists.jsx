@@ -53,7 +53,8 @@ const NotasLists = ({ proyectoId: proyectoIdProp, embedded = false, onClose }) =
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingNota, setEditingNota] = useState(null);
-  const [search, setSearch] = useState("");
+  const [fechaDesde, setFechaDesde] = useState("");
+  const [fechaHasta, setFechaHasta] = useState("");
   const [confirm, setConfirm] = useState(null);
   const canCreate = canManage && (!proyecto || Number(proyecto.id_lider) === Number(user?.id_usuario));
 
@@ -91,12 +92,20 @@ const NotasLists = ({ proyectoId: proyectoIdProp, embedded = false, onClose }) =
   }, [proyectoId]);
 
   const filtered = useMemo(() => {
-    const term = search.toLowerCase();
-    return notas.filter((nota) =>
-      nota.descripcion.toLowerCase().includes(term) ||
-      (nota.nombre_lider || "").toLowerCase().includes(term)
-    );
-  }, [notas, search]);
+    const desde = fechaDesde ? new Date(`${fechaDesde}T00:00:00`) : null;
+    const hasta = fechaHasta ? new Date(`${fechaHasta}T23:59:59`) : null;
+
+    return [...notas]
+      .sort((a, b) => new Date(b.fecha || 0) - new Date(a.fecha || 0))
+      .filter((nota) => {
+        if (!nota.fecha) return !desde && !hasta;
+        const fechaNota = new Date(nota.fecha);
+        if (Number.isNaN(fechaNota.getTime())) return false;
+        if (desde && fechaNota < desde) return false;
+        if (hasta && fechaNota > hasta) return false;
+        return true;
+      });
+  }, [notas, fechaDesde, fechaHasta]);
 
   const handleSaved = () => {
     setShowForm(false);
@@ -186,19 +195,35 @@ const NotasLists = ({ proyectoId: proyectoIdProp, embedded = false, onClose }) =
         />
       )}
 
-      <div className="mb-3">
-        <div className="input-group" style={{ maxWidth: 360 }}>
-          <span className="input-group-text bg-white border-end-0">
-            <i className="bi bi-search text-muted"></i>
-          </span>
+      <div className="d-flex align-items-end flex-wrap gap-3 mb-3">
+        <div>
+          <label className="form-label fw-semibold small mb-1">Desde</label>
           <input
-            type="text"
-            className="form-control border-start-0 ps-0"
-            placeholder="Buscar nota..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            type="date"
+            className="form-control"
+            value={fechaDesde}
+            onChange={(e) => setFechaDesde(e.target.value)}
           />
         </div>
+        <div>
+          <label className="form-label fw-semibold small mb-1">Hasta</label>
+          <input
+            type="date"
+            className="form-control"
+            value={fechaHasta}
+            min={fechaDesde || undefined}
+            onChange={(e) => setFechaHasta(e.target.value)}
+          />
+        </div>
+        {(fechaDesde || fechaHasta) && (
+          <button
+            type="button"
+            className="btn btn-light fw-semibold"
+            onClick={() => { setFechaDesde(""); setFechaHasta(""); }}
+          >
+            Limpiar filtro
+          </button>
+        )}
       </div>
 
       {error && (
