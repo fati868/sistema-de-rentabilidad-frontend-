@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import ProyectoForm from "./ProyectoForm";
 import HorasForm from "../horas/HorasForm";
@@ -381,6 +382,16 @@ const PropietarioView = () => {
                         <td className="text-end" onClick={(e) => e.stopPropagation()}>
                           <div className="d-flex gap-1 justify-content-end">
                             {/* Botón Editar: Solo visible si el proyecto está activo */}
+                            {p.is_active && (
+                              <Link
+                                className="btn btn-sm btn-primary shadow-sm"
+                                title="Fases"
+                                to={`/proyectos/${p.id_proyecto}/fases`}
+                              >
+                                <i className="bi bi-layers"></i>
+                              </Link>
+                            )}
+
                             {p.is_active && (
                               <button className="btn btn-sm btn-success shadow-sm" title="Editar"
                                 onClick={() => handleEdit(p.id_proyecto)}>
