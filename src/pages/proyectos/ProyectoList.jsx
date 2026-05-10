@@ -1,13 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Link } from "react-router-dom";
 import Layout from "../../components/layout/Layout";
 import ProyectoForm from "./ProyectoForm";
 import HorasForm from "../horas/HorasForm";
+import FasesLists from "../fases/FasesLists";
+import NotasLists from "../notas/NotasLists";
 import { useAuth } from "../../context/AuthContext";
 import {
   getProyectos, getMisProyectos, desactivarProyecto,
-  activarProyecto, eliminarProyecto, getHorasResumenProyecto, getEmpleadosProyecto,
 } from "../../services/proyectoService";
+
+const getServicioNombre = (proyecto) => proyecto.nombre_servicio || proyecto.servicio_nombre || "—";
+const getLiderNombre = (proyecto) => proyecto.nombre_lider || proyecto.lider_nombre || "—";
+const isProyectoActivo = (proyecto) => proyecto.is_active !== false;
 
 /* ── Confirm modal ───────────────────────────── */
 const ConfirmModal = ({ title, message, confirmLabel, danger, onConfirm, onCancel }) => (
@@ -34,150 +38,87 @@ const ConfirmModal = ({ title, message, confirmLabel, danger, onConfirm, onCance
   </div>
 );
 
-/* ── Panel expandible de proyecto ────────────── */
-const ProyectoDetailPanel = ({ proyecto, colSpan = 7 }) => {
-  const [resumen, setResumen] = useState({ horas: [], lideres: [] });
-  const [empleados, setEmpleados] = useState([]);
-  const [loading, setLoading] = useState(true);
+/* ── Detalle de proyecto ─────────────────────── */
+const ProyectoDetailModal = ({ proyecto, onClose }) => {
+  if (!proyecto) return null;
 
-  useEffect(() => {
-    Promise.all([
-      getHorasResumenProyecto(proyecto.id_proyecto).catch(() => ({ data: [] })),
-      getEmpleadosProyecto(proyecto.id_proyecto).catch(() => ({ data: [] })),
-      import("../../services/proyectoService").then((m) =>
-        m.getProyectoById ? m.getProyectoById(proyecto.id_proyecto).catch(() => ({ data: null })) : Promise.resolve({ data: null })
-      ),
-    ]).then(([hRes, eRes, pRes]) => {
-      if (hRes?.success) setResumen((prev) => ({ ...prev, horas: hRes.data || [] }));
-      if (eRes?.success) setEmpleados(eRes.data || []);
-      if (pRes?.success && pRes.data?.lideres) setResumen((prev) => ({ ...prev, lideres: pRes.data.lideres }));
-    }).finally(() => setLoading(false));
-  }, [proyecto.id_proyecto]);
-
-  const totalHoras = resumen.horas.reduce((acc, r) => acc + Number(r.total_horas || 0), 0);
+  const empleados = Array.isArray(proyecto.empleados) ? proyecto.empleados : [];
 
   return (
-    <tr>
-      <td colSpan={colSpan} style={{ padding: 0 }}>
-        <div className="animate-fadeInUp" style={{ background: "linear-gradient(135deg,rgba(79,70,229,.03),rgba(6,182,212,.02))", borderTop: "2px solid rgba(79,70,229,.12)", padding: "1.25rem 1.5rem" }}>
+    <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="modal-card p-0 animate-scaleIn" style={{ maxWidth: 760 }}>
+        <div style={{ height: 4, background: "linear-gradient(90deg, var(--primary), var(--accent))" }}></div>
+        <div className="p-4">
+          <div className="d-flex justify-content-between align-items-start gap-3 mb-4">
+            <div>
+              <h5 className="fw-bold mb-1">{proyecto.nombre}</h5>
+              <p className="text-muted small mb-0">{getServicioNombre(proyecto)}</p>
+            </div>
+            <button className="btn btn-sm btn-light rounded-3" onClick={onClose}>
+              <i className="bi bi-x-lg"></i>
+            </button>
+          </div>
+
           <div className="row g-3">
-            {/* Detalles */}
-            <div className="col-12 col-md-4">
-              <h6 className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ fontSize: 13 }}>
-                <i className="bi bi-info-circle-fill" style={{ color: "var(--primary)" }}></i>
-                Detalles del proyecto
-              </h6>
-              <div style={{ fontSize: 13 }}>
-                {proyecto.descripcion && <p className="text-muted mb-2" style={{ lineHeight: 1.5 }}>{proyecto.descripcion}</p>}
+            <div className="col-12 col-md-6">
+              <div className="p-3 rounded-4 bg-light h-100">
+                <h6 className="fw-bold small mb-3">Información</h6>
+                <p className="text-muted small mb-3" style={{ lineHeight: 1.6 }}>
+                  {proyecto.descripcion || "Sin descripción registrada."}
+                </p>
                 <div className="d-flex flex-wrap gap-2">
-                  {proyecto.horas_estimadas && (
-                    <span className="badge badge-role badge-propietario">
-                      <i className="bi bi-clock me-1"></i>{proyecto.horas_estimadas}h estimadas
-                    </span>
-                  )}
+                  <span className="badge badge-role badge-active">
+                    {isProyectoActivo(proyecto) ? "Activo" : "Inactivo"}
+                  </span>
                   {proyecto.presupuesto && (
-                    <span className="badge badge-role badge-active">
-                      ${Number(proyecto.presupuesto).toLocaleString()}
-                    </span>
-                  )}
-                  {proyecto.fecha_inicio && (
-                    <span className="badge badge-role badge-lider">
-                      Inicio: {proyecto.fecha_inicio.slice(0, 10)}
-                    </span>
-                  )}
-                  {proyecto.fecha_fin_estimada && (
-                    <span className="badge badge-role badge-edit">
-                      Fin est.: {proyecto.fecha_fin_estimada.slice(0, 10)}
+                    <span className="badge badge-role badge-propietario">
+                      Presupuesto: S/ {Number(proyecto.presupuesto).toLocaleString("es-PE")}
                     </span>
                   )}
                 </div>
               </div>
             </div>
 
-            {/* Equipo */}
-            <div className="col-12 col-md-3">
-              <h6 className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ fontSize: 13 }}>
-                <i className="bi bi-people-fill" style={{ color: "#10B981" }}></i>
-                Equipo asignado
-              </h6>
-              {loading ? (
-                Array.from({ length: 2 }).map((_, i) => <div key={i} className="skeleton rounded-3 mb-2" style={{ height: 28 }}></div>)
-              ) : (
-                <div style={{ fontSize: 12 }}>
-                  {/* Múltiples líderes */}
-                  {resumen.lideres?.length > 0
-                    ? resumen.lideres.map((l) => (
-                      <div key={l.id_lider} className="d-flex align-items-center gap-2 mb-1 p-2 rounded-3" style={{ background: "rgba(245,158,11,.08)" }}>
-                        <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 11 }}></i>
-                        <span className="fw-semibold">{l.nombre}</span>
-                        <span className="badge badge-role badge-lider ms-auto" style={{ fontSize: 9 }}>Líder</span>
-                      </div>
-                    ))
-                    : proyecto.lider_nombre
-                      ? (
-                        <div className="d-flex align-items-center gap-2 mb-2 p-2 rounded-3" style={{ background: "rgba(245,158,11,.08)" }}>
-                          <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 12 }}></i>
-                          <span className="fw-semibold">{proyecto.lider_nombre}</span>
-                          <span className="badge badge-role badge-lider ms-auto" style={{ fontSize: 9 }}>Líder</span>
-                        </div>
-                      )
-                      : null
-                  }
-                  {empleados.length === 0 && !proyecto.lider_nombre && !(resumen.lideres?.length > 0) && (
-                    <p className="text-muted" style={{ fontSize: 12 }}>Sin equipo asignado</p>
-                  )}
-                  {empleados.map((e) => (
-                    <div key={e.id_empleado} className="d-flex align-items-center gap-2 mb-1 p-1 rounded-2"
-                      style={{ background: "rgba(16,185,129,.05)" }}>
-                      <div className="avatar flex-shrink-0" style={{ width: 22, height: 22, fontSize: 8 }}>
-                        {e.nombre.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
-                      </div>
-                      <span>{e.nombre}</span>
-                    </div>
-                  ))}
+            <div className="col-12 col-md-6">
+              <div className="p-3 rounded-4 bg-light h-100">
+                <h6 className="fw-bold small mb-3">Fechas y equipo</h6>
+                <div className="small text-muted mb-2">
+                  <i className="bi bi-calendar-event me-2"></i>
+                  Inicio: {proyecto.fecha_inicio ? proyecto.fecha_inicio.slice(0, 10) : "—"}
                 </div>
-              )}
-            </div>
-
-            {/* Horas por empleado */}
-            <div className="col-12 col-md-5">
-              <h6 className="fw-bold mb-3 d-flex align-items-center gap-2" style={{ fontSize: 13 }}>
-                <i className="bi bi-clock-history" style={{ color: "var(--accent)" }}></i>
-                Horas registradas
-                <span className="badge badge-role badge-active ms-auto">{totalHoras.toFixed(1)}h total</span>
-
-              </h6>
-              {loading ? (
-                Array.from({ length: 2 }).map((_, i) => <div key={i} className="skeleton rounded-3 mb-2" style={{ height: 36 }}></div>)
-              ) : resumen.horas.length === 0 ? (
-                <p className="text-muted" style={{ fontSize: 12 }}>Sin horas registradas aún.</p>
-              ) : (
-                resumen.horas.map((r) => (
-                  <div key={r.id_usuario} className="mb-2 p-2 rounded-3" style={{ background: "rgba(6,182,212,.05)", fontSize: 12 }}>
-                    <div className="d-flex align-items-center justify-content-between mb-1">
-                      <div className="d-flex align-items-center gap-2">
-                        <div className="avatar flex-shrink-0" style={{ width: 22, height: 22, fontSize: 8 }}>
-                          {r.empleado_nombre.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
-                        </div>
-                        <span className="fw-semibold">{r.empleado_nombre}</span>
-                      </div>
-                      <span className="badge badge-role badge-active">{Number(r.total_horas).toFixed(1)}h</span>
-                    </div>
-                    {r.tareas && (
-                      <p className="text-muted mb-0 text-truncate" style={{ fontSize: 11, paddingLeft: 30 }}>
-                        {r.tareas.slice(0, 80)}{r.tareas.length > 80 ? "…" : ""}
-                      </p>
-                    )}
-                  </div>
-                ))
-              )}
+                <div className="small text-muted mb-3">
+                  <i className="bi bi-calendar-check me-2"></i>
+                  Fin estimado: {proyecto.fecha_fin_estimada ? proyecto.fecha_fin_estimada.slice(0, 10) : "—"}
+                </div>
+                <div className="small text-muted mb-2">
+                  <i className="bi bi-star-fill me-2" style={{ color: "#D97706" }}></i>
+                  Líder: <strong>{getLiderNombre(proyecto)}</strong>
+                </div>
+                <div className="d-flex flex-wrap gap-2 mt-3">
+                  {empleados.length > 0 ? empleados.map((empleado) => (
+                    <span className="badge badge-role badge-empleado" key={empleado.id_usuario}>
+                      {empleado.nombre}
+                    </span>
+                  )) : (
+                    <span className="text-muted small">Sin empleados asignados.</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
   );
 };
+
+const ProjectContentModal = ({ children, onClose }) => (
+  <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="modal-card p-4 animate-scaleIn" style={{ maxWidth: 1120 }}>
+      {children}
+    </div>
+  </div>
+);
 
 /* ── Vista propietario ───────────────────────── */
 const PropietarioView = () => {
@@ -187,8 +128,9 @@ const PropietarioView = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [search, setSearch] = useState("");
-  const [expanded, setExpanded] = useState(null);  // id_proyecto expandido
-  const [confirm, setConfirm] = useState(null);   // { type, proyecto }
+  const [selected, setSelected] = useState(null);
+  const [contentModal, setContentModal] = useState(null);
+  const [confirm, setConfirm] = useState(null);
 
   const fetch = useCallback(async () => {
     try {
@@ -214,16 +156,11 @@ const PropietarioView = () => {
       setLoading(true);
       let res;
 
-      // Lógica de "Eliminación Silenciosa" para la HU 22
       if (confirm.type === "delete") {
-        // El usuario cree que elimina, pero nosotros mantenemos la trazabilidad
         res = await desactivarProyecto(confirm.proyecto.id_proyecto);
-      } else if (confirm.type === "activate") {
-        res = await activarProyecto(confirm.proyecto.id_proyecto);
       }
 
       if (res?.success) {
-        // Refresco de lista tras acción (Criterio HU 22)
         await fetch();
         setConfirm(null);
       } else {
@@ -237,12 +174,11 @@ const PropietarioView = () => {
     }
   };
 
-  const toggleExpand = (id) => setExpanded((prev) => (prev === id ? null : id));
-
   const filtered = proyectos.filter((p) =>
     p.nombre.toLowerCase().includes(search.toLowerCase()) ||
     (p.descripcion || "").toLowerCase().includes(search.toLowerCase()) ||
-    (p.servicio_nombre || "").toLowerCase().includes(search.toLowerCase())
+    getServicioNombre(p).toLowerCase().includes(search.toLowerCase()) ||
+    getLiderNombre(p).toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -264,8 +200,8 @@ const PropietarioView = () => {
         <div className="row g-3 mb-4 stagger">
           {[
             { label: "Total proyectos", value: proyectos.length, icon: "bi-kanban-fill", color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
-            { label: "Activos", value: proyectos.filter(p => p.is_active).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
-            { label: "Inactivos", value: proyectos.filter(p => !p.is_active).length, icon: "bi-x-circle-fill", color: "var(--danger)", bg: "rgba(239,68,68,.1)" },
+            { label: "Activos", value: proyectos.filter(isProyectoActivo).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
+            { label: "Inactivos", value: proyectos.filter(p => !isProyectoActivo(p)).length, icon: "bi-x-circle-fill", color: "var(--danger)", bg: "rgba(239,68,68,.1)" },
           ].map((s, i) => (
             <div className="col-6 col-sm-4" key={i}>
               <div className="stat-card card-3d animate-fadeInUp">
@@ -314,7 +250,7 @@ const PropietarioView = () => {
             <table className="table table-modern mb-0">
               <thead>
                 <tr>
-                  <th style={{ width: 30 }}></th>
+                  <th>#</th>
                   <th>Proyecto</th>
                   <th>Servicio</th>
                   <th>Líder</th>
@@ -331,103 +267,63 @@ const PropietarioView = () => {
                     ))}</tr>
                   ))
                 ) : filtered.length > 0 ? (
-                  filtered.flatMap((p) => {
-                    const isExpanded = expanded === p.id_proyecto;
-                    const rows = [
-                      <tr
-                        key={p.id_proyecto}
-                        className="animate-fadeIn"
-                        style={{ cursor: "pointer", background: isExpanded ? "rgba(79,70,229,.04)" : "" }}
-                        onClick={() => toggleExpand(p.id_proyecto)}
-                      >
-                        <td>
-                          <i className={`bi ${isExpanded ? "bi-chevron-down" : "bi-chevron-right"}`}
-                            style={{ color: "var(--primary)", fontSize: 12 }}></i>
-                        </td>
+                  filtered.map((p) => {
+                    const active = isProyectoActivo(p);
+                    return (
+                      <tr key={p.id_proyecto} className="animate-fadeIn">
+                        <td className="text-muted fw-bold">#{p.id_proyecto}</td>
                         <td>
                           <div className="d-flex align-items-center gap-2">
                             <div className="rounded-3 d-flex align-items-center justify-content-center"
-                              style={{ width: 32, height: 32, background: p.is_active ? "rgba(79,70,229,.1)" : "rgba(100,116,139,.1)", flexShrink: 0 }}>
-                              <i className="bi bi-kanban" style={{ color: p.is_active ? "var(--primary)" : "#94a3b8", fontSize: 14 }}></i>
+                              style={{ width: 32, height: 32, background: active ? "rgba(79,70,229,.1)" : "rgba(100,116,139,.1)", flexShrink: 0 }}>
+                              <i className="bi bi-kanban" style={{ color: active ? "var(--primary)" : "#94a3b8", fontSize: 14 }}></i>
                             </div>
                             <div>
-                              <span className={`fw-semibold d-block ${!p.is_active ? "text-muted" : ""}`}>{p.nombre}</span>
+                              <span className={`fw-semibold d-block ${!active ? "text-muted" : ""}`}>{p.nombre}</span>
                               {p.presupuesto && (
                                 <span className="text-muted" style={{ fontSize: 11 }}>
-                                  ${Number(p.presupuesto).toLocaleString()}
+                                  S/ {Number(p.presupuesto).toLocaleString("es-PE")}
                                 </span>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="text-muted small">{p.servicio_nombre || "—"}</td>
+                        <td className="text-muted small">{getServicioNombre(p)}</td>
                         <td className="text-muted small">
-                          {p.lider_nombre
-                            ? p.lider_nombre.split(", ").map((n, i) => (
-                              <span key={i} className="d-flex align-items-center gap-1 mb-1" style={{ fontSize: 11 }}>
-                                <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 9 }}></i>{n}
-                              </span>
-                            ))
-                            : "—"}
+                          <span className="d-flex align-items-center gap-1" style={{ fontSize: 11 }}>
+                            <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 9 }}></i>{getLiderNombre(p)}
+                          </span>
                         </td>
                         <td className="text-muted small">
                           {p.fecha_inicio ? p.fecha_inicio.slice(0, 10) : "—"}
                           {p.fecha_fin_estimada ? <><br /><span style={{ fontSize: 10 }}>Fin: {p.fecha_fin_estimada.slice(0, 10)}</span></> : ""}
                         </td>
                         <td>
-                          <span className={`badge badge-role ${p.is_active ? "badge-active" : "badge-inactive"}`}>
-                            {p.is_active ? "Activo" : "Inactivo"}
+                          <span className={`badge badge-role ${active ? "badge-active" : "badge-inactive"}`}>
+                            {active ? "Activo" : "Inactivo"}
                           </span>
                         </td>
-                        <td className="text-end" onClick={(e) => e.stopPropagation()}>
+                        <td className="text-end">
                           <div className="d-flex gap-1 justify-content-end">
-                            {/* Botón Editar: Solo visible si el proyecto está activo */}
-                            {p.is_active && (
-                              <Link
-                                className="btn btn-sm btn-primary shadow-sm"
-                                title="Fases"
-                                to={`/proyectos/${p.id_proyecto}/fases`}
-                              >
-                                <i className="bi bi-layers"></i>
-                              </Link>
-                            )}
-
-                            {p.is_active && (
-                              <Link
-                                className="btn btn-sm btn-info shadow-sm text-white"
-                                title="Notas"
-                                to={`/proyectos/${p.id_proyecto}/notas`}
-                              >
-                                <i className="bi bi-journal-text"></i>
-                              </Link>
-                            )}
-
-                            {p.is_active && (
-                              <button className="btn btn-sm btn-success shadow-sm" title="Editar"
-                                onClick={() => handleEdit(p.id_proyecto)}>
-                                <i className="bi bi-pencil-square"></i>
-                              </button>
-                            )}
-
-                            {/* El ÚNICO botón de eliminación: Silenciosamente solo desactiva */}
-                            {p.is_active ? (
-                              <button className="btn btn-sm btn-danger shadow-sm" title="Eliminar"
-                                onClick={() => setConfirm({ type: "delete", proyecto: p })}>
-                                <i className="bi bi-trash-fill"></i>
-                              </button>
-                            ) : (
-                              /* Botón de restauración: Solo visible para proyectos "eliminados" (inactivos) */
-                              <button className="btn btn-sm btn-primary shadow-sm" title="Restaurar"
-                                onClick={() => setConfirm({ type: "activate", proyecto: p })}>
-                                <i className="bi bi-arrow-counterclockwise"></i>
-                              </button>
-                            )}
+                            <button className="btn btn-sm btn-light shadow-sm" title="Ver detalles" onClick={() => setSelected(p)}>
+                              <i className="bi bi-eye"></i>
+                            </button>
+                            <button className="btn btn-sm btn-primary shadow-sm" title="Ver fases" onClick={() => setContentModal({ type: "fases", proyecto: p })}>
+                              <i className="bi bi-layers"></i>
+                            </button>
+                            <button className="btn btn-sm btn-info shadow-sm text-white" title="Ver notas" onClick={() => setContentModal({ type: "notas", proyecto: p })}>
+                              <i className="bi bi-journal-text"></i>
+                            </button>
+                            <button className="btn btn-sm btn-success shadow-sm" title="Editar" onClick={() => handleEdit(p.id_proyecto)}>
+                              <i className="bi bi-pencil-square"></i>
+                            </button>
+                            <button className="btn btn-sm btn-danger shadow-sm" title="Eliminar" onClick={() => setConfirm({ type: "delete", proyecto: p })}>
+                              <i className="bi bi-trash-fill"></i>
+                            </button>
                           </div>
                         </td>
                       </tr>
-                    ];
-                    if (isExpanded) rows.push(<ProyectoDetailPanel key={`detail-${p.id_proyecto}`} proyecto={p} />);
-                    return rows;
+                    );
                   })
                 ) : (
                   <tr>
@@ -446,16 +342,32 @@ const PropietarioView = () => {
         </div>
       </div>
 
+      <ProyectoDetailModal proyecto={selected} onClose={() => setSelected(null)} />
+
+      {contentModal && (
+        <ProjectContentModal onClose={() => setContentModal(null)}>
+          {contentModal.type === "fases" ? (
+            <FasesLists
+              embedded
+              proyectoId={contentModal.proyecto.id_proyecto}
+              onClose={() => setContentModal(null)}
+            />
+          ) : (
+            <NotasLists
+              embedded
+              proyectoId={contentModal.proyecto.id_proyecto}
+              onClose={() => setContentModal(null)}
+            />
+          )}
+        </ProjectContentModal>
+      )}
+
       {confirm && (
         <ConfirmModal
-          danger={confirm.type === "delete"}
-          title={confirm.type === "delete" ? "Eliminar proyecto" : "Restaurar proyecto"}
-          message={
-            confirm.type === "delete"
-              ? `¿Estás seguro de que deseas eliminar el proyecto "${confirm.proyecto.nombre}"? Esta acción no se puede deshacer.`
-              : `¿Deseas restaurar el proyecto "${confirm.proyecto.nombre}" para volver a operar con él?`
-          }
-          confirmLabel={confirm.type === "delete" ? "Sí, eliminar" : "Sí, restaurar"}
+          danger
+          title="Eliminar proyecto"
+          message={`¿Estás seguro de eliminar el proyecto "${confirm.proyecto.nombre}"?`}
+          confirmLabel="Sí, eliminar"
           onConfirm={handleConfirm}
           onCancel={() => setConfirm(null)}
         />
@@ -469,7 +381,8 @@ const LiderView = () => {
   const [proyectos, setProyectos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [expanded, setExpanded] = useState(null);
+  const [selected, setSelected] = useState(null);
+  const [contentModal, setContentModal] = useState(null);
   const [search, setSearch] = useState("");
 
   useEffect(() => {
@@ -479,11 +392,9 @@ const LiderView = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const toggleExpand = (id) => setExpanded((prev) => (prev === id ? null : id));
-
   const filtered = proyectos.filter((p) =>
     p.nombre.toLowerCase().includes(search.toLowerCase()) ||
-    (p.servicio_nombre || "").toLowerCase().includes(search.toLowerCase())
+    getServicioNombre(p).toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -502,8 +413,8 @@ const LiderView = () => {
         <div className="row g-3 mb-4 stagger">
           {[
             { label: "Total proyectos", value: proyectos.length, icon: "bi-kanban-fill", color: "var(--primary)", bg: "rgba(79,70,229,.1)" },
-            { label: "Activos", value: proyectos.filter(p => p.is_active).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
-            { label: "Inactivos", value: proyectos.filter(p => !p.is_active).length, icon: "bi-x-circle-fill", color: "var(--danger)", bg: "rgba(239,68,68,.1)" },
+            { label: "Activos", value: proyectos.filter(isProyectoActivo).length, icon: "bi-check-circle-fill", color: "var(--success)", bg: "rgba(16,185,129,.1)" },
+            { label: "Inactivos", value: proyectos.filter(p => !isProyectoActivo(p)).length, icon: "bi-x-circle-fill", color: "var(--danger)", bg: "rgba(239,68,68,.1)" },
           ].map((s, i) => (
             <div className="col-12 col-sm-4" key={i}>
               <div className="stat-card card-3d animate-fadeInUp">
@@ -561,16 +472,15 @@ const LiderView = () => {
                   ))
                 ) : filtered.length > 0 ? (
                   filtered.flatMap((p) => {
-                    const isExpanded = expanded === p.id_proyecto;
                     return [
                       <tr
                         key={p.id_proyecto}
                         className="animate-fadeIn"
-                        style={{ cursor: "pointer", background: isExpanded ? "rgba(79,70,229,.04)" : "" }}
-                        onClick={() => toggleExpand(p.id_proyecto)}
+                        style={{ cursor: "pointer" }}
+                        onClick={() => setSelected(p)}
                       >
                         <td>
-                          <i className={`bi ${isExpanded ? "bi-chevron-down" : "bi-chevron-right"}`}
+                          <i className="bi bi-chevron-right"
                             style={{ color: "var(--primary)", fontSize: 12 }}></i>
                         </td>
                         <td>
@@ -587,29 +497,37 @@ const LiderView = () => {
                             </div>
                           </div>
                         </td>
-                        <td className="text-muted small">{p.servicio_nombre || "—"}</td>
+                        <td className="text-muted small">{getServicioNombre(p)}</td>
                         <td className="text-muted small">
                           {p.fecha_inicio ? p.fecha_inicio.slice(0, 10) : "—"}
                           {p.fecha_fin_estimada ? <><br /><span style={{ fontSize: 10 }}>Fin: {p.fecha_fin_estimada.slice(0, 10)}</span></> : ""}
                         </td>
                         <td>
-                          <span className={`badge badge-role ${p.is_active ? "badge-active" : "badge-inactive"}`}>
-                            {p.is_active ? "Activo" : "Inactivo"}
+                          <span className={`badge badge-role ${isProyectoActivo(p) ? "badge-active" : "badge-inactive"}`}>
+                            {isProyectoActivo(p) ? "Activo" : "Inactivo"}
                           </span>
                         </td>
                         <td className="text-end" onClick={(e) => e.stopPropagation()}>
-                          {p.is_active && (
-                            <Link
+                          {isProyectoActivo(p) && (
+                            <>
+                            <button
+                              className="btn btn-sm btn-primary shadow-sm me-2"
+                              title="Fases"
+                              onClick={() => setContentModal({ type: "fases", proyecto: p })}
+                            >
+                              <i className="bi bi-layers"></i>
+                            </button>
+                            <button
                               className="btn btn-sm btn-info shadow-sm text-white"
                               title="Notas"
-                              to={`/proyectos/${p.id_proyecto}/notas`}
+                              onClick={() => setContentModal({ type: "notas", proyecto: p })}
                             >
                               <i className="bi bi-journal-text"></i>
-                            </Link>
+                            </button>
+                            </>
                           )}
                         </td>
                       </tr>,
-                      isExpanded && <ProyectoDetailPanel key={`detail-${p.id_proyecto}`} proyecto={p} colSpan={6} />,
                     ].filter(Boolean);
                   })
                 ) : (
@@ -628,6 +546,24 @@ const LiderView = () => {
           </div>
         </div>
       </div>
+      <ProyectoDetailModal proyecto={selected} onClose={() => setSelected(null)} />
+      {contentModal && (
+        <ProjectContentModal onClose={() => setContentModal(null)}>
+          {contentModal.type === "fases" ? (
+            <FasesLists
+              embedded
+              proyectoId={contentModal.proyecto.id_proyecto}
+              onClose={() => setContentModal(null)}
+            />
+          ) : (
+            <NotasLists
+              embedded
+              proyectoId={contentModal.proyecto.id_proyecto}
+              onClose={() => setContentModal(null)}
+            />
+          )}
+        </ProjectContentModal>
+      )}
     </Layout>
   );
 };

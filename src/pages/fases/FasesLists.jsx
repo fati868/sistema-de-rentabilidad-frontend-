@@ -212,9 +212,14 @@ const FasesLists = ({ proyectoId: proyectoIdProp, embedded = false, onClose }) =
                     </td>
                     {canManage && (
                       <td className="text-end">
-                        <button className="btn btn-sm btn-success" title="Editar" onClick={() => handleEdit(fase.id_fase)}>
-                          <i className="bi bi-pencil-square"></i>
-                        </button>
+                        <div className="d-flex gap-2 justify-content-end">
+                          <button className="btn btn-sm btn-success" title="Editar" onClick={() => handleEdit(fase.id_fase)}>
+                            <i className="bi bi-pencil-square"></i>
+                          </button>
+                          <button className="btn btn-sm btn-danger" title="El backend aún no expone eliminación de fases" disabled>
+                            <i className="bi bi-trash-fill"></i>
+                          </button>
+                        </div>
                       </td>
                     )}
                   </tr>

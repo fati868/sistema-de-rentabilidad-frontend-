@@ -7,9 +7,8 @@ const EMPTY = {
   nombre: "", 
   descripcion: "", 
   id_servicio: "",
-  id_lider: "", // CORRECCIÓN: Ahora es un ID único, no un array
+  id_lider: "",
   presupuesto: "", 
-  horas_estimadas: "", 
   fecha_inicio: "", 
   fecha_fin_estimada: "",
   empleados_ids: [],
@@ -47,9 +46,8 @@ const ProyectoForm = ({ proyectoId, onSaved, onCancel }) => {
             nombre: p.nombre || "",
             descripcion: p.descripcion || "",
             id_servicio: p.id_servicio || "",
-            id_lider: p.id_lider || "", // Tomamos el líder único
+            id_lider: p.id_lider || "",
             presupuesto: p.presupuesto || "",
-            horas_estimadas: p.horas_estimadas || "",
             fecha_inicio: p.fecha_inicio?.slice(0, 10) || "",
             fecha_fin_estimada: p.fecha_fin_estimada?.slice(0, 10) || "",
             empleados_ids: (p.empleados || []).map((e) => e.id_usuario),
@@ -76,8 +74,12 @@ const ProyectoForm = ({ proyectoId, onSaved, onCancel }) => {
     e.preventDefault();
     setError("");
 
-    // VALIDACIONES (SCRUM-175)
-    if (Number(form.presupuesto) < 0) return setError("El presupuesto no puede ser negativo.");
+    if (form.nombre.trim().length < 3) return setError("El nombre debe tener al menos 3 caracteres.");
+    if (!form.id_servicio) return setError("Selecciona un servicio.");
+    if (!form.id_lider) return setError("Selecciona un líder responsable.");
+    if (!form.presupuesto || Number(form.presupuesto) < 1) return setError("El presupuesto debe ser mayor o igual a 1.");
+    if (!form.fecha_inicio) return setError("La fecha de inicio es obligatoria.");
+    if (!form.fecha_fin_estimada) return setError("La fecha fin estimada es obligatoria.");
     if (form.fecha_inicio && form.fecha_fin_estimada) {
       if (new Date(form.fecha_inicio) > new Date(form.fecha_fin_estimada)) {
         return setError("La fecha de inicio no puede ser posterior a la fecha fin.");
@@ -86,11 +88,14 @@ const ProyectoForm = ({ proyectoId, onSaved, onCancel }) => {
 
     setLoading(true);
     const payload = {
-      ...form,
+      nombre: form.nombre.trim(),
+      descripcion: form.descripcion.trim() || undefined,
       id_servicio: Number(form.id_servicio),
       id_lider: Number(form.id_lider),
-      presupuesto: form.presupuesto ? Number(form.presupuesto) : 0,
-      horas_estimadas: form.horas_estimadas ? Number(form.horas_estimadas) : 0,
+      presupuesto: Number(form.presupuesto),
+      fecha_inicio: form.fecha_inicio,
+      fecha_fin_estimada: form.fecha_fin_estimada,
+      empleados: form.empleados_ids,
     };
 
     try {
@@ -123,7 +128,19 @@ const ProyectoForm = ({ proyectoId, onSaved, onCancel }) => {
           <div className="row g-3">
             <div className="col-12 col-sm-6">
               <label className="form-label fw-semibold small">Nombre del proyecto *</label>
-              <input type="text" name="nombre" value={form.nombre} onChange={handleChange} className="form-control" required />
+              <input type="text" name="nombre" value={form.nombre} onChange={handleChange} className="form-control" minLength={3} maxLength={100} required />
+            </div>
+
+            <div className="col-12">
+              <label className="form-label fw-semibold small">Descripción</label>
+              <textarea
+                name="descripcion"
+                value={form.descripcion}
+                onChange={handleChange}
+                className="form-control"
+                rows={3}
+                maxLength={500}
+              />
             </div>
 
             <div className="col-12 col-sm-6">
@@ -134,7 +151,6 @@ const ProyectoForm = ({ proyectoId, onSaved, onCancel }) => {
               </select>
             </div>
 
-            {/* CORRECCIÓN LÍDER ÚNICO (SCRUM-174 y SCRUM-243) */}
             <div className="col-12 col-sm-6">
               <label className="form-label fw-semibold small">Líder responsable *</label>
               <select name="id_lider" value={form.id_lider} onChange={handleChange} className="form-select" required>
@@ -144,25 +160,19 @@ const ProyectoForm = ({ proyectoId, onSaved, onCancel }) => {
             </div>
 
             <div className="col-6 col-sm-3">
-              <label className="form-label fw-semibold small">Presupuesto</label>
-              <input type="number" name="presupuesto" value={form.presupuesto} onChange={handleChange} className="form-control" placeholder="0.00" />
-            </div>
-            
-            <div className="col-6 col-sm-3">
-              <label className="form-label fw-semibold small">Horas est.</label>
-              <input type="number" name="horas_estimadas" value={form.horas_estimadas} onChange={handleChange} className="form-control" />
+              <label className="form-label fw-semibold small">Presupuesto *</label>
+              <input type="number" name="presupuesto" value={form.presupuesto} onChange={handleChange} className="form-control" min="1" step="0.01" placeholder="0.00" required />
             </div>
 
             <div className="col-12 col-sm-6">
-              <label className="form-label fw-semibold small">Fecha inicio</label>
-              <input type="date" name="fecha_inicio" value={form.fecha_inicio} onChange={handleChange} className="form-control" />
+              <label className="form-label fw-semibold small">Fecha inicio *</label>
+              <input type="date" name="fecha_inicio" value={form.fecha_inicio} onChange={handleChange} className="form-control" required />
             </div>
             <div className="col-12 col-sm-6">
-              <label className="form-label fw-semibold small">Fecha fin estimada</label>
-              <input type="date" name="fecha_fin_estimada" value={form.fecha_fin_estimada} onChange={handleChange} className="form-control" />
+              <label className="form-label fw-semibold small">Fecha fin estimada *</label>
+              <input type="date" name="fecha_fin_estimada" value={form.fecha_fin_estimada} onChange={handleChange} className="form-control" required />
             </div>
 
-            {/* VARIOS EMPLEADOS (SCRUM-243) */}
             <div className="col-12">
               <label className="form-label fw-semibold small d-flex justify-content-between">
                 <span>Asignar Equipo (Empleados)</span>

@@ -6,7 +6,7 @@ export const getProyectos = async () => {
 };
 
 export const getMisProyectos = async () => {
-  const response = await api.get("/proyectos/mis-proyectos");
+  const response = await api.get("/proyectos");
   return response.data;
 };
 
@@ -35,13 +35,8 @@ export const desactivarProyecto = async (id) => {
   return response.data;
 };
 
-export const activarProyecto = async (id) => {
-  const response = await api.put(`/proyectos/${id}/activar`);
-  return response.data;
-};
-
-export const eliminarProyecto = async (id) => {
-  const response = await api.delete(`/proyectos/${id}`);
+export const finalizarProyecto = async (id) => {
+  const response = await api.put(`/proyectos/${id}/finalizar`);
   return response.data;
 };
 
