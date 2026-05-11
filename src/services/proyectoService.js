@@ -35,6 +35,8 @@ export const desactivarProyecto = async (id) => {
   return response.data;
 };
 
+export const eliminarProyecto = desactivarProyecto;
+
 // src/services/proyectoService.js
 export const finalizarProyecto = async (id, data) => {
   const response = await api.put(`/proyectos/${id}/finalizar`, data);

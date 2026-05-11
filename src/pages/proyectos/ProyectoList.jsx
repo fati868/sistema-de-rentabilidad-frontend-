@@ -6,7 +6,7 @@ import FasesLists from "../fases/FasesLists";
 import NotasLists from "../notas/NotasLists";
 import { useAuth } from "../../context/AuthContext";
 import { 
-  getProyectos, getMisProyectos, desactivarProyecto, 
+  getProyectos, getMisProyectos, getProyectoById, eliminarProyecto, 
   finalizarProyecto // Asegúrate de que esté importado
 } from "../../services/proyectoService";
 import { notifySuccess, notifyError } from "../../utils/notify"; // Importación necesaria para feedback
@@ -15,6 +15,7 @@ import { notifySuccess, notifyError } from "../../utils/notify"; // Importación
 const getServicioNombre = (proyecto) => proyecto.nombre_servicio || proyecto.servicio_nombre || "—";
 const getLiderNombre = (proyecto) => proyecto.nombre_lider || proyecto.lider_nombre || "—";
 const isProyectoActivo = (proyecto) => proyecto.is_active !== false;
+const formatProyectoDate = (date) => date ? date.slice(0, 10) : "---";
 
 /* ── Confirm modal ───────────────────────────── */
 const ConfirmModal = ({ title, message, confirmLabel, danger, onConfirm, onCancel }) => (
@@ -87,11 +88,15 @@ const ProyectoDetailModal = ({ proyecto, onClose }) => {
                 <h6 className="fw-bold small mb-3">Fechas y equipo</h6>
                 <div className="small text-muted mb-2">
                   <i className="bi bi-calendar-event me-2"></i>
-                  Inicio: {proyecto.fecha_inicio ? proyecto.fecha_inicio.slice(0, 10) : "—"}
+                  Inicio: {formatProyectoDate(proyecto.fecha_inicio)}
+                </div>
+                <div className="small text-muted mb-2">
+                  <i className="bi bi-calendar-check me-2"></i>
+                  Fin estimado: {formatProyectoDate(proyecto.fecha_fin_estimada)}
                 </div>
                 <div className="small text-muted mb-3">
-                  <i className="bi bi-calendar-check me-2"></i>
-                  Fin estimado: {proyecto.fecha_fin_estimada ? proyecto.fecha_fin_estimada.slice(0, 10) : "—"}
+                  <i className="bi bi-flag-fill me-2" style={{ color: "#059669" }}></i>
+                  Fin real: <strong>{formatProyectoDate(proyecto.fecha_fin_real)}</strong>
                 </div>
                 <div className="small text-muted mb-2">
                   <i className="bi bi-star-fill me-2" style={{ color: "#D97706" }}></i>
@@ -139,8 +144,20 @@ const PropietarioView = () => {
     try {
       setLoading(true);
       const res = await getProyectos();
-      if (res.success) setProyectos(res.data);
-      else setError("No se pudo cargar la lista de proyectos.");
+      if (res.success) {
+        const proyectosConDetalle = await Promise.all(
+          (res.data || []).map(async (proyecto) => {
+            try {
+              const detalle = await getProyectoById(proyecto.id_proyecto);
+              return detalle?.success ? { ...proyecto, ...detalle.data } : proyecto;
+            } catch {
+              return proyecto;
+            }
+          })
+        );
+
+        setProyectos(proyectosConDetalle);
+      } else setError("No se pudo cargar la lista de proyectos.");
     } catch {
       setError("Error al conectar con el servidor.");
     } finally {
@@ -160,17 +177,20 @@ const PropietarioView = () => {
       let res;
 
       if (confirm.type === "delete") {
-        res = await desactivarProyecto(confirm.proyecto.id_proyecto);
+        res = await eliminarProyecto(confirm.proyecto.id_proyecto);
       }
 
       if (res?.success) {
-        await fetch();
+        setProyectos((prev) =>
+          prev.filter((p) => p.id_proyecto !== confirm.proyecto.id_proyecto)
+        );
+        notifySuccess("Proyecto eliminado correctamente.");
         setConfirm(null);
       } else {
-        setError(res?.message || "Error al procesar la solicitud.");
+        notifyError(res?.message || "Error al eliminar el proyecto.");
       }
     } catch (err) {
-      setError("Error de conexión con el servidor.");
+      notifyError(err.response?.data?.message || "Error de conexión con el servidor.");
     } finally {
       setLoading(false);
       setConfirm(null);
@@ -250,16 +270,16 @@ const PropietarioView = () => {
 
         <div className="card border-0 rounded-4 overflow-hidden" style={{ boxShadow: "var(--shadow-md)" }}>
           <div className="table-responsive">
-            <table className="table table-modern mb-0">
+            <table className="table table-modern mb-0" style={{ minWidth: 1060 }}>
               <thead>
                 <tr>
-                  <th>#</th>
-                  <th>Proyecto</th>
-                  <th>Servicio</th>
-                  <th>Líder</th>
-                  <th>Fechas</th>
-                  <th>Estado</th>
-                  <th className="text-end">Acciones</th>
+                  <th style={{ width: 70 }}>#</th>
+                  <th style={{ width: 250 }}>Proyecto</th>
+                  <th style={{ width: 150 }}>Servicio</th>
+                  <th style={{ width: 150 }}>Líder</th>
+                  <th style={{ width: 210 }}>Fechas</th>
+                  <th style={{ width: 100 }}>Estado</th>
+                  <th className="text-end" style={{ width: 180 }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -298,8 +318,11 @@ const PropietarioView = () => {
                           </span>
                         </td>
                         <td className="text-muted small">
-                          {p.fecha_inicio ? p.fecha_inicio.slice(0, 10) : "—"}
-                          {p.fecha_fin_estimada ? <><br /><span style={{ fontSize: 10 }}>Fin: {p.fecha_fin_estimada.slice(0, 10)}</span></> : ""}
+                          <div className="d-grid gap-1" style={{ lineHeight: 1.25 }}>
+                            <span><strong>Inicio:</strong> {formatProyectoDate(p.fecha_inicio)}</span>
+                            <span><strong>Estimado:</strong> {formatProyectoDate(p.fecha_fin_estimada)}</span>
+                            <span><strong>Real:</strong> {formatProyectoDate(p.fecha_fin_real)}</span>
+                          </div>
                         </td>
                         <td>
                           <span className={`badge badge-role ${active ? "badge-active" : "badge-inactive"}`}>
@@ -369,7 +392,7 @@ const PropietarioView = () => {
         <ConfirmModal
           danger
           title="Eliminar proyecto"
-          message={`¿Estás seguro de eliminar el proyecto "${confirm.proyecto.nombre}"?`}
+          message={`¿Estás seguro de eliminar el proyecto "${confirm.proyecto.nombre}"? Se ocultará de la lista, pero quedará desactivado en el sistema.`}
           confirmLabel="Sí, eliminar"
           onConfirm={handleConfirm}
           onCancel={() => setConfirm(null)}
