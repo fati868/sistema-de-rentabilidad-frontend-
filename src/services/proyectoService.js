@@ -35,8 +35,9 @@ export const desactivarProyecto = async (id) => {
   return response.data;
 };
 
-export const finalizarProyecto = async (id) => {
-  const response = await api.put(`/proyectos/${id}/finalizar`);
+// src/services/proyectoService.js
+export const finalizarProyecto = async (id, data) => {
+  const response = await api.put(`/proyectos/${id}/finalizar`, data);
   return response.data;
 };
 
@@ -49,3 +50,4 @@ export const getEmpleadosProyecto = async (id) => {
   const response = await api.get(`/proyectos/${id}/empleados`);
   return response.data;
 };
+

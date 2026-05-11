@@ -6,8 +6,13 @@ export const getNotasByProyecto = async (proyectoId) => {
 };
 
 export const createNota = async (proyectoId, data) => {
-  const response = await api.post(`/proyectos/${proyectoId}/notas`, data);
-  return response.data;
+  try {
+    const response = await api.post(`/proyectos/${proyectoId}/notas`, data);
+    return response.data;
+  } catch (error) {
+    // Captura el mensaje del backend para mostrarlo en el Toast de error
+    throw error.response?.data?.message || "Error al registrar la nota";
+  }
 };
 
 export const updateNota = async (id, data) => {

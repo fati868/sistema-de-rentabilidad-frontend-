@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createNota, updateNota } from "../../services/notaService";
+import { notifySuccess, notifyError } from "../../utils/notify"; // Importación de utilidades de feedback
 
 const EMPTY = {
   descripcion: "",
@@ -9,6 +10,9 @@ const NotasForm = ({ nota, proyectoId, onSaved, onCancel }) => {
   const [form, setForm] = useState(EMPTY);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Límite máximo de caracteres definido en los criterios de aceptación
+  const MAX_CARACTERES = 1000;
 
   useEffect(() => {
     if (!nota) {
@@ -24,25 +28,36 @@ const NotasForm = ({ nota, proyectoId, onSaved, onCancel }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (error) setError(""); // Limpiar error visual al escribir
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    // ── SUBTAREA: VALIDAR DESCRIPCIÓN ─────────────────────────────────
     const descripcion = form.descripcion.trim();
+    
+    // Criterio: La descripción de la nota es obligatoria
     if (!descripcion) {
-      setError("La descripción es obligatoria.");
+      const msg = "La descripción de la nota es obligatoria.";
+      setError(msg);
+      notifyError(msg); // Feedback visual inmediato
       return;
     }
 
-    if (descripcion.length > 1000) {
-      setError("La descripción no puede superar los 1000 caracteres.");
+    // Criterio: El sistema debe validar el límite máximo de caracteres
+    if (descripcion.length > MAX_CARACTERES) {
+      const msg = `La descripción no puede superar los ${MAX_CARACTERES} caracteres.`;
+      setError(msg);
+      notifyError(msg); // Feedback visual inmediato
       return;
     }
 
     if (!nota?.id_nota && !proyectoId) {
-      setError("Selecciona un proyecto antes de registrar notas.");
+      const msg = "Selecciona un proyecto antes de registrar notas.";
+      setError(msg);
+      notifyError(msg);
       return;
     }
 
@@ -54,12 +69,19 @@ const NotasForm = ({ nota, proyectoId, onSaved, onCancel }) => {
         : await createNota(proyectoId, payload);
 
       if (res?.success) {
+        // ── SUBTAREA: FEEDBACK VISUAL (ÉXITO) ─────────────────────────
+        notifySuccess(nota?.id_nota ? "Nota actualizada correctamente" : "Nota registrada con éxito");
         onSaved?.();
       } else {
-        setError(res?.message || "Error al guardar la nota.");
+        const msgError = res?.message || "Error al guardar la nota.";
+        setError(msgError);
+        notifyError(msgError); // Feedback visual de error del sistema
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Error al guardar la nota.");
+      // ── SUBTAREA: FEEDBACK VISUAL (ERROR TÉCNICO) ────────────────────
+      const msgError = err.response?.data?.message || "Error de conexión con el servidor.";
+      setError(msgError);
+      notifyError(msgError);
     } finally {
       setLoading(false);
     }
@@ -67,48 +89,58 @@ const NotasForm = ({ nota, proyectoId, onSaved, onCancel }) => {
 
   return (
     <div className="card border-0 rounded-4 mb-4 animate-scaleIn overflow-hidden shadow-sm">
-      <div style={{ height: 4, background: "linear-gradient(90deg, var(--primary), var(--accent))" }}></div>
+      <div style={{ height: 4, background: "linear-gradient(90deg, #f59e0b, #d97706)" }}></div>
       <div className="p-4">
         <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
           <div>
             <h5 className="fw-bold mb-1">{nota?.id_nota ? "Editar nota" : "Nueva nota"}</h5>
-            <p className="text-muted small mb-0">Registra avances, acuerdos o incidencias del proyecto</p>
+            <p className="text-muted small mb-0">Registra observaciones sobre el desempeño o avance del proyecto</p>
           </div>
-          <button type="button" className="btn btn-sm btn-outline-secondary rounded-3" onClick={onCancel}>
+          <button type="button" className="btn btn-sm btn-outline-secondary rounded-3" onClick={onCancel} disabled={loading}>
             Cancelar
           </button>
         </div>
 
+        {/* Alerta interna para validaciones rápidas (UI/UX) */}
         {error && (
-          <div className="alert alert-danger py-2 small rounded-3 mb-3">
-            <i className="bi bi-exclamation-circle-fill me-2"></i>{error}
+          <div className="alert alert-danger py-2 small rounded-3 mb-3 animate-fadeIn">
+            <i className="bi bi-exclamation-triangle-fill me-2"></i>{error}
           </div>
         )}
 
         <form onSubmit={handleSubmit}>
           <div className="mb-2">
-            <label className="form-label fw-semibold small">Descripción *</label>
+            <label className="form-label fw-semibold small">Descripción de la nota *</label>
             <textarea
               name="descripcion"
               value={form.descripcion}
               onChange={handleChange}
-              className="form-control"
+              className={`form-control ${error ? "is-invalid" : ""}`}
               rows={5}
-              maxLength={1000}
+              maxLength={MAX_CARACTERES}
+              placeholder="Escribe aquí las observaciones..."
               required
+              disabled={loading}
             />
           </div>
 
+          {/* Contador de caracteres dinámico (Criterio Técnico) */}
           <div className="d-flex justify-content-end mb-3">
-            <span className="text-muted small">{form.descripcion.length}/1000</span>
+            <span className={`small ${form.descripcion.length >= MAX_CARACTERES ? "text-danger fw-bold" : "text-muted"}`}>
+              {form.descripcion.length} / {MAX_CARACTERES}
+            </span>
           </div>
 
           <div className="d-flex gap-2">
-            <button type="button" className="btn btn-light fw-semibold px-4" onClick={onCancel}>
+            <button type="button" className="btn btn-light fw-semibold px-4" onClick={onCancel} disabled={loading}>
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary flex-fill fw-bold" disabled={loading}>
-              {loading ? "Guardando..." : nota?.id_nota ? "Actualizar nota" : "Crear nota"}
+            <button type="submit" className="btn btn-warning flex-fill fw-bold text-dark" disabled={loading}>
+              {loading ? (
+                <><span className="spinner-border spinner-border-sm me-2"></span>Procesando...</>
+              ) : (
+                nota?.id_nota ? "Actualizar nota" : "Guardar nota"
+              )}
             </button>
           </div>
         </form>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { createFase, getFaseById, updateFase } from "../../services/faseService";
+import { notifySuccess, notifyError } from "../../utils/notify"; // Importación corregida
 
 const EMPTY = {
   nombre: "",
@@ -26,25 +27,28 @@ const FasesForm = ({ faseId, proyectoId, onSaved, onCancel }) => {
             horas_estimadas: res.data.horas_estimadas ?? "",
           });
         } else {
-          setError(res?.message || "No se pudo cargar la fase.");
+          notifyError(res?.message || "No se pudo cargar la fase."); // Uso de notifyError
         }
       })
       .catch((err) => {
-        setError(err.response?.data?.message || "No se pudo cargar la fase.");
+        notifyError("Error al conectar con el servidor para cargar la fase."); //
       });
   }, [faseId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
+    if (error) setError(""); // Limpieza de errores al escribir
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!faseId && !proyectoId) {
-      setError("Selecciona un proyecto antes de crear fases.");
+    // ── SUBTAREA: VALIDACIONES [H41] ──
+    // Criterio: El nombre de la fase es obligatorio
+    if (!form.nombre.trim()) {
+      setError("El nombre de la fase es obligatorio.");
       return;
     }
 
@@ -53,14 +57,16 @@ const FasesForm = ({ faseId, proyectoId, onSaved, onCancel }) => {
       return;
     }
 
-    if (form.horas_estimadas !== "" && Number(form.horas_estimadas) < 0) {
-      setError("Las horas estimadas no pueden ser negativas.");
+    // Criterio: Las horas estimadas deben ser mayores a cero
+    const horasNum = Number(form.horas_estimadas);
+    if (form.horas_estimadas === "" || isNaN(horasNum) || horasNum <= 0) {
+      setError("Las horas estimadas deben ser un número mayor a cero.");
       return;
     }
 
     const payload = {
       nombre: form.nombre.trim(),
-      horas_estimadas: form.horas_estimadas === "" ? 0 : Number(form.horas_estimadas),
+      horas_estimadas: horasNum,
     };
 
     setLoading(true);
@@ -70,12 +76,19 @@ const FasesForm = ({ faseId, proyectoId, onSaved, onCancel }) => {
         : await createFase(proyectoId, payload);
 
       if (res?.success) {
+        // ── SUBTAREA: FEEDBACK (TOAST) ──
+        // Criterio: Confirmación visual al actualizar
+        notifySuccess(faseId ? "Fase actualizada correctamente" : "Fase creada con éxito"); //
         onSaved?.();
       } else {
-        setError(res?.message || "Error al guardar la fase.");
+        // Criterio: Mensajes claros de error (Ej: Fases duplicadas)
+        setError(res?.message || "Error al procesar la solicitud.");
+        notifyError(res?.message || "Error al guardar."); //
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Error al guardar la fase.");
+      const msg = err.response?.data?.message || "Error al guardar la fase.";
+      setError(msg);
+      notifyError(msg); //
     } finally {
       setLoading(false);
     }
@@ -88,7 +101,7 @@ const FasesForm = ({ faseId, proyectoId, onSaved, onCancel }) => {
         <div className="d-flex justify-content-between align-items-start gap-3 mb-3">
           <div>
             <h5 className="fw-bold mb-1">{faseId ? "Editar fase" : "Nueva fase"}</h5>
-            <p className="text-muted small mb-0">Define el trabajo por etapas del proyecto</p>
+            <p className="text-muted small mb-0">Planificación y actualización de etapas del proyecto</p>
           </div>
           <button type="button" className="btn btn-sm btn-outline-secondary rounded-3" onClick={onCancel}>
             Cancelar
@@ -96,8 +109,8 @@ const FasesForm = ({ faseId, proyectoId, onSaved, onCancel }) => {
         </div>
 
         {error && (
-          <div className="alert alert-danger py-2 small rounded-3 mb-3">
-            <i className="bi bi-exclamation-circle-fill me-2"></i>{error}
+          <div className="alert alert-danger py-2 small rounded-3 mb-3 animate-fadeIn">
+            <i className="bi bi-exclamation-triangle-fill me-2"></i>{error}
           </div>
         )}
 
@@ -110,34 +123,47 @@ const FasesForm = ({ faseId, proyectoId, onSaved, onCancel }) => {
                 name="nombre"
                 value={form.nombre}
                 onChange={handleChange}
-                className="form-control"
-                minLength={2}
-                maxLength={100}
+                className={`form-control ${error && error.includes("nombre") ? "is-invalid" : ""}`}
+                placeholder="Ej: Diseño de Interfaz"
                 required
               />
             </div>
 
             <div className="col-12 col-md-4">
-              <label className="form-label fw-semibold small">Horas estimadas</label>
+              <label className="form-label fw-semibold small">Horas estimadas *</label>
               <input
                 type="number"
                 name="horas_estimadas"
                 value={form.horas_estimadas}
                 onChange={handleChange}
-                className="form-control"
-                min="0"
-                step="0.25"
-                placeholder="0"
+                className={`form-control ${error && error.includes("horas") ? "is-invalid" : ""}`}
+                min="0.1"
+                step="0.1"
+                placeholder="0.0"
+                required
               />
             </div>
           </div>
 
           <div className="d-flex gap-2 mt-4">
-            <button type="button" className="btn btn-light fw-semibold px-4" onClick={onCancel}>
+            <button 
+              type="button" 
+              className="btn btn-light fw-semibold px-4" 
+              onClick={onCancel} 
+              disabled={loading}
+            >
               Cancelar
             </button>
-            <button type="submit" className="btn btn-primary flex-fill fw-bold" disabled={loading}>
-              {loading ? "Guardando..." : faseId ? "Actualizar fase" : "Crear fase"}
+            <button 
+              type="submit" 
+              className="btn btn-primary flex-fill fw-bold" 
+              disabled={loading}
+            >
+              {loading ? (
+                <><span className="spinner-border spinner-border-sm me-2"></span>Guardando...</>
+              ) : (
+                faseId ? "Actualizar fase" : "Crear fase"
+              )}
             </button>
           </div>
         </form>
