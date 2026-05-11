@@ -270,16 +270,16 @@ const PropietarioView = () => {
 
         <div className="card border-0 rounded-4 overflow-hidden" style={{ boxShadow: "var(--shadow-md)" }}>
           <div className="table-responsive">
-            <table className="table table-modern mb-0" style={{ minWidth: 1060 }}>
+            <table className="table table-modern mb-0" style={{ width: "100%", tableLayout: "fixed" }}>
               <thead>
                 <tr>
-                  <th style={{ width: 70 }}>#</th>
-                  <th style={{ width: 250 }}>Proyecto</th>
-                  <th style={{ width: 150 }}>Servicio</th>
-                  <th style={{ width: 150 }}>Líder</th>
-                  <th style={{ width: 210 }}>Fechas</th>
-                  <th style={{ width: 100 }}>Estado</th>
-                  <th className="text-end" style={{ width: 180 }}>Acciones</th>
+                  <th style={{ width: "3%" }}></th>
+                  <th style={{ width: "27%" }}>Proyecto</th>
+                  <th style={{ width: "14%" }}>Servicio</th>
+                  <th style={{ width: "14%" }}>Líder</th>
+                  <th style={{ width: "18%" }}>Fechas</th>
+                  <th style={{ width: "9%" }}>Estado</th>
+                  <th className="text-end" style={{ width: "15%" }}>Acciones</th>
                 </tr>
               </thead>
               <tbody>
@@ -293,28 +293,36 @@ const PropietarioView = () => {
                   filtered.map((p) => {
                     const active = isProyectoActivo(p);
                     return (
-                      <tr key={p.id_proyecto} className="animate-fadeIn">
-                        <td className="text-muted fw-bold">#{p.id_proyecto}</td>
+                      <tr key={p.id_proyecto} className="animate-fadeIn" style={{ cursor: "pointer" }} onClick={() => setSelected(p)}>
+                        <td><i className="bi bi-chevron-right" style={{ color: "var(--primary)", fontSize: 12 }}></i></td>
                         <td>
                           <div className="d-flex align-items-center gap-2">
                             <div className="rounded-3 d-flex align-items-center justify-content-center"
                               style={{ width: 32, height: 32, background: active ? "rgba(79,70,229,.1)" : "rgba(100,116,139,.1)", flexShrink: 0 }}>
                               <i className="bi bi-kanban" style={{ color: active ? "var(--primary)" : "#94a3b8", fontSize: 14 }}></i>
                             </div>
-                            <div>
-                              <span className={`fw-semibold d-block ${!active ? "text-muted" : ""}`}>{p.nombre}</span>
+                            <div style={{ minWidth: 0 }}>
+                              <span className={`fw-semibold d-block text-truncate ${!active ? "text-muted" : ""}`}>{p.nombre}</span>
                               {p.presupuesto && (
                                 <span className="text-muted" style={{ fontSize: 11 }}>
-                                  S/ {Number(p.presupuesto).toLocaleString("es-PE")}
+                                  #{p.id_proyecto} · S/ {Number(p.presupuesto).toLocaleString("es-PE")}
                                 </span>
+                              )}
+                              {!p.presupuesto && (
+                                <span className="text-muted" style={{ fontSize: 11 }}>#{p.id_proyecto}</span>
                               )}
                             </div>
                           </div>
                         </td>
-                        <td className="text-muted small">{getServicioNombre(p)}</td>
+                        <td className="text-muted small text-truncate" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                          {getServicioNombre(p)}
+                        </td>
                         <td className="text-muted small">
-                          <span className="d-flex align-items-center gap-1" style={{ fontSize: 11 }}>
-                            <i className="bi bi-star-fill" style={{ color: "#D97706", fontSize: 9 }}></i>{getLiderNombre(p)}
+                          <span className="d-flex align-items-center gap-1" style={{ fontSize: 11, minWidth: 0 }}>
+                            <i className="bi bi-star-fill flex-shrink-0" style={{ color: "#D97706", fontSize: 9 }}></i>
+                            <span className="text-truncate" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                              {getLiderNombre(p)}
+                            </span>
                           </span>
                         </td>
                         <td className="text-muted small">
@@ -329,11 +337,8 @@ const PropietarioView = () => {
                             {active ? "Activo" : "Inactivo"}
                           </span>
                         </td>
-                        <td className="text-end">
-                          <div className="d-flex gap-1 justify-content-end">
-                            <button className="btn btn-sm btn-light shadow-sm" title="Ver detalles" onClick={() => setSelected(p)}>
-                              <i className="bi bi-eye"></i>
-                            </button>
+                        <td className="text-end" onClick={(e) => e.stopPropagation()}>
+                          <div className="d-grid gap-1 ms-auto" style={{ gridTemplateColumns: "repeat(2, 32px)", width: 68 }}>
                             <button className="btn btn-sm btn-primary shadow-sm" title="Ver fases" onClick={() => setContentModal({ type: "fases", proyecto: p })}>
                               <i className="bi bi-layers"></i>
                             </button>
